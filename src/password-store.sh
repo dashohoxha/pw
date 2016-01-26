@@ -293,10 +293,17 @@ cmd_init() {
 		--) shift; break ;;
 	esac done
 
-#	[[ $err -ne 0 || $# -lt 1 ]] && die "Usage: $PROGRAM $COMMAND [--path=subfolder,-p subfolder] gpg-id..."
-	[[ $err -ne 0 ]] && die "Usage: $PROGRAM $COMMAND [--path=subfolder,-p subfolder] ..."
+	[[ $err -ne 0 ]] && die "Usage: $PROGRAM $COMMAND [--path=subfolder,-p subfolder] [gpg-id]..."
 	[[ -n $id_path ]] && check_sneaky_paths "$id_path"
 	[[ -n $id_path && ! -d $PREFIX/$id_path && -e $PREFIX/$id_path ]] && die "Error: $PREFIX/$id_path exists but is not a directory."
+
+        # When no gpg-id is given to the init command,
+        # initialize for symmetric encryption (don't create .gpg-id).
+        if [[ $# -eq 0 ]]; then
+            mkdir -v -p "$PREFIX/$id_path"
+            echo "Password store initialized."
+            return
+        fi
 
 	local gpg_id="$PREFIX/$id_path/.gpg-id"
 
