@@ -12,8 +12,14 @@ export GPG_TTY="${GPG_TTY:-$(tty 2>/dev/null)}"
 which gpg2 &>/dev/null && GPG="gpg2"
 [[ -n $GPG_AGENT_INFO || $GPG == "gpg2" ]] && GPG_OPTS+=( "--batch" "--use-agent" )
 
-ENCRYPT="$GPG -e ${GPG_OPTS[@]}"
-DECRYPT="$GPG -d ${GPG_OPTS[@]}"
+if [ "$PASSWORD_STORE_GPG_ENCRYPTION" == 'asymmetric' ]
+then
+    ENCRYPT="$GPG -e ${GPG_OPTS[@]}"
+    DECRYPT="$GPG -d ${GPG_OPTS[@]}"
+else
+    ENCRYPT="$GPG -c ${GPG_OPTS[@]} --cipher-algo=AES256"
+    DECRYPT="$GPG -o - ${GPG_OPTS[@]}"
+fi
 
 PREFIX="${PASSWORD_STORE_DIR:-$HOME/.password-store}"
 X_SELECTION="${PASSWORD_STORE_X_SELECTION:-clipboard}"
@@ -52,6 +58,8 @@ set_gpg_recipients() {
 	GPG_RECIPIENT_ARGS=( )
 	GPG_RECIPIENTS=( )
 
+        [[ "$PASSWORD_STORE_GPG_ENCRYPTION" == 'asymmetric' ]] || return
+
 	if [[ -n $PASSWORD_STORE_KEY ]]; then
 		for gpg_id in $PASSWORD_STORE_KEY; do
 			GPG_RECIPIENT_ARGS+=( "-r" "$gpg_id" )
@@ -85,6 +93,8 @@ set_gpg_recipients() {
 }
 
 reencrypt_path() {
+        [[ "$PASSWORD_STORE_GPG_ENCRYPTION" == 'asymmetric' ]] || return
+
 	local prev_gpg_recipients="" gpg_keys="" current_keys="" index passfile
 	local groups="$($GPG $PASSWORD_STORE_GPG_OPTS --list-config --with-colons | grep "^cfg:group:.*")"
 	while read -r -d "" passfile; do
@@ -270,7 +280,8 @@ cmd_init() {
 		--) shift; break ;;
 	esac done
 
-	[[ $err -ne 0 || $# -lt 1 ]] && die "Usage: $PROGRAM $COMMAND [--path=subfolder,-p subfolder] gpg-id..."
+#	[[ $err -ne 0 || $# -lt 1 ]] && die "Usage: $PROGRAM $COMMAND [--path=subfolder,-p subfolder] gpg-id..."
+	[[ $err -ne 0 ]] && die "Usage: $PROGRAM $COMMAND [--path=subfolder,-p subfolder] ..."
 	[[ -n $id_path ]] && check_sneaky_paths "$id_path"
 	[[ -n $id_path && ! -d $PREFIX/$id_path && -e $PREFIX/$id_path ]] && die "Error: $PREFIX/$id_path exists but is not a directory."
 
