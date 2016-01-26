@@ -12,14 +12,23 @@ export GPG_TTY="${GPG_TTY:-$(tty 2>/dev/null)}"
 which gpg2 &>/dev/null && GPG="gpg2"
 [[ -n $GPG_AGENT_INFO || $GPG == "gpg2" ]] && GPG_OPTS+=( "--batch" "--use-agent" )
 
-if [ "$PASSWORD_STORE_GPG_ENCRYPTION" == 'asymmetric' ]
-then
-    ENCRYPT="$GPG -e ${GPG_OPTS[@]}"
-    DECRYPT="$GPG -d ${GPG_OPTS[@]}"
-else
-    ENCRYPT="$GPG -c ${GPG_OPTS[@]} --cipher-algo=AES256"
-    DECRYPT="$GPG -o - ${GPG_OPTS[@]}"
-fi
+encrypt() {
+    if [ "$PASSWORD_STORE_GPG_ENCRYPTION" == 'asymmetric' ]
+    then
+        $GPG -e ${GPG_OPTS[@]} "$@"
+    else
+        $GPG -c ${GPG_OPTS[@]} --cipher-algo=AES256 "$@"
+    fi
+}
+
+decrypt() {
+    if [ "$PASSWORD_STORE_GPG_ENCRYPTION" == 'asymmetric' ]
+    then
+        $GPG -d ${GPG_OPTS[@]} "$@"
+    else
+        $GPG -o - ${GPG_OPTS[@]} "$@"
+    fi
+}
 
 PREFIX="${PASSWORD_STORE_DIR:-$HOME/.password-store}"
 X_SELECTION="${PASSWORD_STORE_X_SELECTION:-clipboard}"
@@ -119,7 +128,7 @@ reencrypt_path() {
 
 		if [[ $gpg_keys != "$current_keys" ]]; then
 			echo "$passfile_display: reencrypting to ${gpg_keys//$'\n'/ }"
-			$DECRYPT "$passfile" | $ENCRYPT "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile_temp" &&
+			decrypt "$passfile" | encrypt "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile_temp" &&
 			mv "$passfile_temp" "$passfile" || rm -f "$passfile_temp"
 		fi
 		prev_gpg_recipients="${GPG_RECIPIENTS[*]}"
@@ -324,9 +333,9 @@ cmd_show() {
 	check_sneaky_paths "$path"
 	if [[ -f $passfile ]]; then
 		if [[ $clip -eq 0 ]]; then
-			$DECRYPT "$passfile" || exit $?
+			decrypt "$passfile" || exit $?
 		else
-			local pass="$($DECRYPT "$passfile" | head -n 1)"
+			local pass="$(decrypt "$passfile" | head -n 1)"
 			[[ -n $pass ]] || exit 1
 			clip "$pass" "$path"
 		fi
@@ -355,7 +364,7 @@ cmd_grep() {
 	[[ $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND search-string"
 	local search="$1" passfile grepresults
 	while read -r -d "" passfile; do
-		grepresults="$($DECRYPT "$passfile" | grep --color=always "$search")"
+		grepresults="$(decrypt "$passfile" | grep --color=always "$search")"
 		[ $? -ne 0 ] && continue
 		passfile="${passfile%.gpg}"
 		passfile="${passfile#$PREFIX/}"
@@ -392,7 +401,7 @@ cmd_insert() {
 	if [[ $multiline -eq 1 ]]; then
 		echo "Enter contents of $path and press Ctrl+D when finished:"
 		echo
-		$ENCRYPT "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile" || exit 1
+		encrypt "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile" || exit 1
 	elif [[ $noecho -eq 1 ]]; then
 		local password password_again
 		while true; do
@@ -401,7 +410,7 @@ cmd_insert() {
 			read -r -p "Retype password for $path: " -s password_again || exit 1
 			echo
 			if [[ $password == "$password_again" ]]; then
-				$ENCRYPT "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile" <<<"$password"
+				encrypt "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile" <<<"$password"
 				break
 			else
 				echo "Error: the entered passwords do not match."
@@ -410,7 +419,7 @@ cmd_insert() {
 	else
 		local password
 		read -r -p "Enter password for $path: " -e password
-		$ENCRYPT "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile" <<<"$password"
+		encrypt "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile" <<<"$password"
 	fi
 	git_add_file "$passfile" "Add given password for $path to store."
 }
@@ -430,13 +439,13 @@ cmd_edit() {
 
 	local action="Add"
 	if [[ -f $passfile ]]; then
-		$DECRYPT -o "$tmp_file" "$passfile" || exit 1
+		decrypt -o "$tmp_file" "$passfile" || exit 1
 		action="Edit"
 	fi
 	${EDITOR:-vi} "$tmp_file"
 	[[ -f $tmp_file ]] || die "New password not saved."
-	$DECRYPT -o - "$passfile" 2>/dev/null | diff - "$tmp_file" &>/dev/null && die "Password unchanged."
-	while ! $ENCRYPT "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile" "$tmp_file"; do
+	decrypt -o - "$passfile" 2>/dev/null | diff - "$tmp_file" &>/dev/null && die "Password unchanged."
+	while ! encrypt "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile" "$tmp_file"; do
 		yesno "GPG encryption failed. Would you like to try again?"
 	done
 	git_add_file "$passfile" "$action password for $path using ${EDITOR:-vi}."
@@ -469,10 +478,10 @@ cmd_generate() {
 	local pass="$(pwgen -s $symbols $length 1)"
 	[[ -n $pass ]] || exit 1
 	if [[ $inplace -eq 0 ]]; then
-		$ENCRYPT "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile" <<<"$pass"
+		encrypt "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile" <<<"$pass"
 	else
 		local passfile_temp="${passfile}.tmp.${RANDOM}.${RANDOM}.${RANDOM}.${RANDOM}.--"
-		if $DECRYPT "$passfile" | sed $'1c \\\n'"$(sed 's/[\/&]/\\&/g' <<<"$pass")"$'\n' | $ENCRYPT "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile_temp"; then
+		if decrypt "$passfile" | sed $'1c \\\n'"$(sed 's/[\/&]/\\&/g' <<<"$pass")"$'\n' | encrypt "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile_temp"; then
 			mv "$passfile_temp" "$passfile"
 		else
 			rm -f "$passfile_temp"
