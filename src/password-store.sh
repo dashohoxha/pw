@@ -12,24 +12,6 @@ export GPG_TTY="${GPG_TTY:-$(tty 2>/dev/null)}"
 which gpg2 &>/dev/null && GPG="gpg2"
 [[ -n $GPG_AGENT_INFO || $GPG == "gpg2" ]] && GPG_OPTS+=( "--batch" "--use-agent" )
 
-encrypt() {
-    if [ "$PASSWORD_STORE_GPG_ENCRYPTION" == 'asymmetric' ]
-    then
-        $GPG -e "${GPG_OPTS[@]}" "${GPG_RECIPIENT_ARGS[@]}" "$@"
-    else
-        $GPG -c "${GPG_OPTS[@]}" --cipher-algo=AES256 "$@"
-    fi
-}
-
-decrypt() {
-    if [ "$PASSWORD_STORE_GPG_ENCRYPTION" == 'asymmetric' ]
-    then
-        $GPG -d ${GPG_OPTS[@]} "$@"
-    else
-        $GPG -o - ${GPG_OPTS[@]} "$@"
-    fi
-}
-
 PREFIX="${PASSWORD_STORE_DIR:-$HOME/.password-store}"
 X_SELECTION="${PASSWORD_STORE_X_SELECTION:-clipboard}"
 CLIP_TIME="${PASSWORD_STORE_CLIP_TIME:-45}"
@@ -37,10 +19,32 @@ CLIP_TIME="${PASSWORD_STORE_CLIP_TIME:-45}"
 export GIT_DIR="${PASSWORD_STORE_GIT:-$PREFIX}/.git"
 export GIT_WORK_TREE="${PASSWORD_STORE_GIT:-$PREFIX}"
 
+if [[ -f "$PREFIX/.gpg-id" ]]; then
+    GPG_ENCRYPTION='asymmetric'
+else
+    GPG_ENCRYPTION='symmetric'
+fi
+
 #
 # BEGIN helper functions
 #
 
+encrypt() {
+        if [[ "$GPG_ENCRYPTION" == 'asymmetric' ]]
+        then
+            $GPG -e "${GPG_OPTS[@]}" "${GPG_RECIPIENT_ARGS[@]}" "$@"
+        else
+            $GPG -c "${GPG_OPTS[@]}" --cipher-algo=AES256 "$@"
+        fi
+}
+decrypt() {
+        if [[ "$GPG_ENCRYPTION" == 'asymmetric' ]]
+        then
+            $GPG -d ${GPG_OPTS[@]} "$@"
+        else
+            $GPG -o - ${GPG_OPTS[@]} "$@"
+        fi
+}
 git_add_file() {
 	[[ -d $GIT_DIR ]] || return
 	git add "$1" || return
@@ -67,7 +71,7 @@ set_gpg_recipients() {
 	GPG_RECIPIENT_ARGS=( )
 	GPG_RECIPIENTS=( )
 
-        [[ "$PASSWORD_STORE_GPG_ENCRYPTION" == 'asymmetric' ]] || return
+        [[ "$GPG_ENCRYPTION" == 'asymmetric' ]] || return
 
 	if [[ -n $PASSWORD_STORE_KEY ]]; then
 		for gpg_id in $PASSWORD_STORE_KEY; do
@@ -102,7 +106,7 @@ set_gpg_recipients() {
 }
 
 reencrypt_path() {
-        [[ "$PASSWORD_STORE_GPG_ENCRYPTION" == 'asymmetric' ]] || return
+        [[ "$GPG_ENCRYPTION" == 'asymmetric' ]] || return
 
 	local prev_gpg_recipients="" gpg_keys="" current_keys="" index passfile
 	local groups="$($GPG $PASSWORD_STORE_GPG_OPTS --list-config --with-colons | grep "^cfg:group:.*")"
