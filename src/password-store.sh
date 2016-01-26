@@ -30,19 +30,17 @@ fi
 #
 
 encrypt() {
-        if [[ "$GPG_ENCRYPTION" == 'asymmetric' ]]
-        then
+        if [[ "$GPG_ENCRYPTION" == 'asymmetric' ]]; then
             $GPG -e "${GPG_OPTS[@]}" "${GPG_RECIPIENT_ARGS[@]}" "$@"
         else
             $GPG -c "${GPG_OPTS[@]}" --cipher-algo=AES256 "$@"
         fi
 }
 decrypt() {
-        if [[ "$GPG_ENCRYPTION" == 'asymmetric' ]]
-        then
-            $GPG -d ${GPG_OPTS[@]} "$@"
+        if [[ "$GPG_ENCRYPTION" == 'asymmetric' ]]; then
+            $GPG -d "${GPG_OPTS[@]}" "$@"
         else
-            $GPG -o - ${GPG_OPTS[@]} "$@"
+            $GPG -o - "${GPG_OPTS[@]}" "$@"
         fi
 }
 git_add_file() {
