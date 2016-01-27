@@ -3,14 +3,14 @@
 # Copyright (C) 2012 - 2014 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
 # This file is licensed under the GPLv2+. Please see COPYING for more information.
 
-umask "${PASSWORD_STORE_UMASK:-077}"
+umask 077
 set -o pipefail
 
-GPG_OPTS=( $PASSWORD_STORE_GPG_OPTS "--quiet" "--yes" "--compress-algo=none" "--no-encrypt-to" )
+GPG_OPTS="--quiet --yes --compress-algo=none --no-encrypt-to"
 GPG="gpg"
 export GPG_TTY="${GPG_TTY:-$(tty 2>/dev/null)}"
 which gpg2 &>/dev/null && GPG="gpg2"
-[[ -n $GPG_AGENT_INFO || $GPG == "gpg2" ]] && GPG_OPTS+=( "--batch" "--use-agent" )
+[[ -n $GPG_AGENT_INFO || $GPG == "gpg2" ]] && GPG_OPTS="$GPG_OPTS --batch --use-agent"
 
 PREFIX="${PASSWORD_STORE_DIR:-$HOME/.password-store}"
 X_SELECTION="${PASSWORD_STORE_X_SELECTION:-clipboard}"
@@ -24,10 +24,10 @@ export GIT_WORK_TREE="${PASSWORD_STORE_GIT:-$PREFIX}"
 #
 
 encrypt() {
-    $GPG -c "${GPG_OPTS[@]}" --cipher-algo=AES256 "$@"
+    $GPG -c $GPG_OPTS --cipher-algo=AES256 "$@"
 }
 decrypt() {
-    $GPG -o - "${GPG_OPTS[@]}" "$@"
+    $GPG -o - $GPG_OPTS "$@"
 }
 git_add_file() {
     [[ -d $GIT_DIR ]] || return
@@ -479,7 +479,7 @@ cmd_git() {
         echo '*.gpg diff=gpg' > "$PREFIX/.gitattributes"
         git_add_file .gitattributes "Configure git repository for gpg file diff."
         git config --local diff.gpg.binary true
-        git config --local diff.gpg.textconv "$GPG -d ${GPG_OPTS[*]}"
+        git config --local diff.gpg.textconv "$GPG -o - $GPG_OPTS"
     elif [[ -d $GIT_DIR ]]; then
         tmpdir nowarn #Defines $SECURE_TMPDIR. We don't warn, because at most, this only copies encrypted files.
         export TMPDIR="$SECURE_TMPDIR"
