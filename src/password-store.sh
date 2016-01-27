@@ -51,6 +51,12 @@ die() {
     echo "$@" >&2
     exit 1
 }
+check_sneaky_paths() {
+    local path
+    for path in "$@"; do
+        [[ $path =~ /\.\.$ || $path =~ ^\.\./ || $path =~ /\.\./ || $path =~ ^\.\.$ ]] && die "Error: You've attempted to pass a sneaky path to pass. Go home."
+    done
+}
 
 #
 # END helper functions
