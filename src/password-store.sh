@@ -232,9 +232,6 @@ cmd_show() {
 
     [[ $err -ne 0 ]] && die "Usage: $PROGRAM $COMMAND [--clip,-c] [pass-name]"
 
-    # extract archive to $WORKDIR
-    archive_unlock
-
     local path="$1"
     local passfile="$WORKDIR/$path.gpg"
     check_sneaky_paths "$path"
@@ -258,24 +255,16 @@ cmd_show() {
     else
         die "Error: $path is not in the password store."
     fi
-
-    rm -rf $WORKDIR
 }
 
 cmd_find() {
-    archive_unlock
-
     [[ -z "$@" ]] && die "Usage: $PROGRAM $COMMAND pass-names..."
     IFS="," eval 'echo "Search Terms: $*"'
     local terms="*$(printf '%s*|*' "$@")"
     tree -C -l --noreport -P "${terms%|*}" --prune "$WORKDIR" | tail -n +2 | sed -E 's/\.gpg(\x1B\[[0-9]+m)?( ->|$)/\1\2/g'
-
-    rm -rf $WORKDIR
 }
 
 cmd_grep() {
-    archive_unlock
-
     [[ $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND search-string"
     local search="$1" passfile grepresults
     while read -r -d "" passfile; do
@@ -289,13 +278,9 @@ cmd_grep() {
         printf "\e[94m%s\e[1m%s\e[0m:\n" "$passfile_dir" "$passfile"
         echo "$grepresults"
     done < <(find -L "$WORKDIR" -iname '*.gpg' -print0)
-
-    rm -rf $WORKDIR
 }
 
 cmd_insert() {
-    archive_unlock
-
     local opts multiline=0 noecho=1 force=0
     opts="$($GETOPT -o mef -l multiline,echo,force -n "$PROGRAM" -- "$@")"
     local err=$?
@@ -342,13 +327,9 @@ cmd_insert() {
         encrypt -o "$passfile" <<<"$password"
     fi
     git_add_file "$passfile" "Add given password for $path to store."
-
-    archive_lock
 }
 
 cmd_edit() {
-    archive_unlock
-
     [[ $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND pass-name"
 
     local path="$1"
@@ -370,13 +351,9 @@ cmd_edit() {
     done
     git_add_file "$passfile" "$action password for $path using ${EDITOR:-vi}."
     rm -f $tmp_file
-
-    archive_lock
 }
 
 cmd_generate() {
-    archive_unlock
-
     local opts clip=0 force=0 symbols="-y" inplace=0
     opts="$($GETOPT -o ncif -l no-symbols,clip,in-place,force -n "$PROGRAM" -- "$@")"
     local err=$?
@@ -423,13 +400,9 @@ cmd_generate() {
     else
         clip "$pass" "$path"
     fi
-
-    archive_lock
 }
 
 cmd_delete() {
-    archive_unlock
-
     local opts recursive="" force=0
     opts="$($GETOPT -o rf -l recursive,force -n "$PROGRAM" -- "$@")"
     local err=$?
@@ -459,13 +432,9 @@ cmd_delete() {
         git_commit "Remove $path from store."
     fi
     rmdir -p "${passfile%/*}" 2>/dev/null
-
-    archive_lock
 }
 
 cmd_copy_move() {
-    archive_unlock
-
     local opts move=1 force=0
     [[ $1 == "copy" ]] && move=0
     shift
@@ -508,13 +477,9 @@ cmd_copy_move() {
         cp $interactive -r -v "$old_path" "$new_path" || exit 1
         git_add_file "$new_path" "Copy ${1} to ${2}."
     fi
-
-    archive_lock
 }
 
 cmd_git() {
-    archive_unlock
-
     if [[ $1 == "init" ]]; then
         git "$@" || exit 1
         git_add_file "$WORKDIR" "Add current contents of password store."
@@ -530,8 +495,6 @@ cmd_git() {
     else
         die "Error: the password store is not a git repository. Try \"$PROGRAM git init\"."
     fi
-
-    archive_lock
 }
 
 #
@@ -542,19 +505,95 @@ PROGRAM="${0##*/}"
 COMMAND="$1"
 
 case "$1" in
-    init) shift;                cmd_init "$@" ;;
-    help|--help) shift;         cmd_usage "$@" ;;
-    version|--version) shift;   cmd_version "$@" ;;
-    show|ls|list) shift;        cmd_show "$@" ;;
-    find|search) shift;         cmd_find "$@" ;;
-    grep) shift;                cmd_grep "$@" ;;
-    insert|add) shift;          cmd_insert "$@" ;;
-    edit) shift;                cmd_edit "$@" ;;
-    generate) shift;            cmd_generate "$@" ;;
-    delete|rm|remove) shift;    cmd_delete "$@" ;;
-    rename|mv) shift;           cmd_copy_move "move" "$@" ;;
-    copy|cp) shift;             cmd_copy_move "copy" "$@" ;;
-    git) shift;                 cmd_git "$@" ;;
-    *) COMMAND="show";          cmd_show "$@" ;;
+    init)
+        shift
+        cmd_init "$@"
+        ;;
+
+    help|--help)
+        shift
+        cmd_usage "$@"
+        ;;
+
+    version|--version)
+        shift
+        cmd_version "$@"
+        ;;
+
+    show|ls|list)
+        archive_unlock
+        shift
+        cmd_show "$@"
+        ;;
+
+    find|search)
+        archive_unlock
+        shift
+        cmd_find "$@"
+        ;;
+
+    grep)
+        archive_unlock
+        shift
+        cmd_grep "$@"
+        ;;
+
+    insert|add)
+        archive_unlock
+        shift
+        cmd_insert "$@"
+        archive_lock
+        ;;
+
+    edit)
+        archive_unlock
+        shift
+        cmd_edit "$@"
+        archive_lock
+        ;;
+
+    generate)
+        archive_unlock
+        shift
+        cmd_generate "$@"
+        archive_lock
+        ;;
+
+    delete|rm|remove)
+        archive_unlock
+        shift
+        cmd_delete "$@"
+        archive_lock
+        ;;
+
+    rename|mv)
+        archive_unlock
+        shift
+        cmd_copy_move "move" "$@"
+        archive_lock
+        ;;
+
+    copy|cp)
+        archive_unlock
+        shift
+        cmd_copy_move "copy" "$@"
+        archive_lock
+        ;;
+
+    git)
+        archive_unlock
+        shift
+        cmd_git "$@"
+        archive_lock
+        ;;
+
+    *)
+        archive_unlock
+        COMMAND="show";
+        cmd_show "$@"
+        ;;
 esac
+
+[[ -n $WORKDIR ]] && rm -rf $WORKDIR
+
 exit 0
