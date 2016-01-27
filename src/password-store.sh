@@ -98,13 +98,13 @@ tmpdir() {
         }
         trap remove_tmpfile INT TERM EXIT
     else
-        [[ $warn -eq 1 ]] && yesno "$(cat <<-_EOF
+        [[ $warn -eq 1 ]] && yesno "$(cat <<- _EOF
                 Your system does not have /dev/shm, which means that it may
                 be difficult to entirely erase the temporary non-encrypted
                 password file after editing.
 
                 Are you sure you would like to continue?
-                _EOF
+_EOF
                 )"
         SECURE_TMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/$template")"
         shred_tmpfile() {
@@ -141,7 +141,7 @@ cmd_version() {
         =                                          =
         =      http://www.passwordstore.org/       =
         ============================================
-        _EOF
+_EOF
 }
 
 cmd_usage() {
@@ -186,7 +186,7 @@ cmd_usage() {
                 Show version information.
 
         More information may be found in the pass(1) man page.
-        _EOF
+_EOF
 }
 
 cmd_init() {
