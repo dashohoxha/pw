@@ -19,29 +19,15 @@ CLIP_TIME="${PASSWORD_STORE_CLIP_TIME:-45}"
 export GIT_DIR="${PASSWORD_STORE_GIT:-$PREFIX}/.git"
 export GIT_WORK_TREE="${PASSWORD_STORE_GIT:-$PREFIX}"
 
-if [[ -f "$PREFIX/.gpg-id" ]]; then
-    GPG_ENCRYPTION='asymmetric'
-else
-    GPG_ENCRYPTION='symmetric'
-fi
-
 #
 # BEGIN helper functions
 #
 
 encrypt() {
-    if [[ "$GPG_ENCRYPTION" == 'asymmetric' ]]; then
-        $GPG -e "${GPG_OPTS[@]}" "${GPG_RECIPIENT_ARGS[@]}" "$@"
-    else
-        $GPG -c "${GPG_OPTS[@]}" --cipher-algo=AES256 "$@"
-    fi
+    $GPG -c "${GPG_OPTS[@]}" --cipher-algo=AES256 "$@"
 }
 decrypt() {
-    if [[ "$GPG_ENCRYPTION" == 'asymmetric' ]]; then
-        $GPG -d "${GPG_OPTS[@]}" "$@"
-    else
-        $GPG -o - "${GPG_OPTS[@]}" "$@"
-    fi
+    $GPG -o - "${GPG_OPTS[@]}" "$@"
 }
 git_add_file() {
     [[ -d $GIT_DIR ]] || return
@@ -64,83 +50,6 @@ yesno() {
 die() {
     echo "$@" >&2
     exit 1
-}
-set_gpg_recipients() {
-    GPG_RECIPIENT_ARGS=( )
-    GPG_RECIPIENTS=( )
-
-    [[ "$GPG_ENCRYPTION" == 'asymmetric' ]] || return
-
-    if [[ -n $PASSWORD_STORE_KEY ]]; then
-        for gpg_id in $PASSWORD_STORE_KEY; do
-            GPG_RECIPIENT_ARGS+=( "-r" "$gpg_id" )
-            GPG_RECIPIENTS+=( "$gpg_id" )
-        done
-        return
-    fi
-
-    local current="$PREFIX/$1"
-    while [[ $current != "$PREFIX" && ! -f $current/.gpg-id ]]; do
-        current="${current%/*}"
-    done
-    current="$current/.gpg-id"
-
-    if [[ ! -f $current ]]; then
-        cat >&2 <<-_EOF
-                Error: You must run:
-                    $PROGRAM init your-gpg-id
-                before you may use the password store.
-
-                _EOF
-                cmd_usage
-                exit 1
-    fi
-
-    local gpg_id
-    while read -r gpg_id; do
-        GPG_RECIPIENT_ARGS+=( "-r" "$gpg_id" )
-        GPG_RECIPIENTS+=( "$gpg_id" )
-    done < "$current"
-}
-
-reencrypt_path() {
-    [[ "$GPG_ENCRYPTION" == 'asymmetric' ]] || return
-
-    local prev_gpg_recipients="" gpg_keys="" current_keys="" index passfile
-    local groups="$($GPG $PASSWORD_STORE_GPG_OPTS --list-config --with-colons | grep "^cfg:group:.*")"
-    while read -r -d "" passfile; do
-        local passfile_dir="${passfile%/*}"
-        passfile_dir="${passfile_dir#$PREFIX}"
-        passfile_dir="${passfile_dir#/}"
-        local passfile_display="${passfile#$PREFIX/}"
-        passfile_display="${passfile_display%.gpg}"
-        local passfile_temp="${passfile}.tmp.${RANDOM}.${RANDOM}.${RANDOM}.${RANDOM}.--"
-
-        set_gpg_recipients "$passfile_dir"
-        if [[ $prev_gpg_recipients != "${GPG_RECIPIENTS[*]}" ]]; then
-            for index in "${!GPG_RECIPIENTS[@]}"; do
-                local group="$(sed -n "s/^cfg:group:$(sed 's/[\/&]/\\&/g' <<<"${GPG_RECIPIENTS[$index]}"):\\(.*\\)\$/\\1/p" <<<"$groups" | head -n 1)"
-                [[ -z $group ]] && continue
-                IFS=";" eval 'GPG_RECIPIENTS+=( $group )' # http://unix.stackexchange.com/a/92190
-                unset GPG_RECIPIENTS[$index]
-            done
-            gpg_keys="$($GPG $PASSWORD_STORE_GPG_OPTS --list-keys --with-colons "${GPG_RECIPIENTS[@]}" | sed -n 's/sub:[^:]*:[^:]*:[^:]*:\([^:]*\):[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[a-zA-Z]*e[a-zA-Z]*:.*/\1/p' | LC_ALL=C sort -u)"
-        fi
-        current_keys="$($GPG $PASSWORD_STORE_GPG_OPTS -v --no-secmem-warning --no-permission-warning --list-only --keyid-format long "$passfile" 2>&1 | cut -d ' ' -f 5 | LC_ALL=C sort -u)"
-
-        if [[ $gpg_keys != "$current_keys" ]]; then
-            echo "$passfile_display: reencrypting to ${gpg_keys//$'\n'/ }"
-            decrypt "$passfile" | encrypt -o "$passfile_temp" &&
-            mv "$passfile_temp" "$passfile" || rm -f "$passfile_temp"
-        fi
-        prev_gpg_recipients="${GPG_RECIPIENTS[*]}"
-    done < <(find "$1" -iname '*.gpg' -print0)
-}
-check_sneaky_paths() {
-    local path
-    for path in "$@"; do
-        [[ $path =~ /\.\.$ || $path =~ ^\.\./ || $path =~ /\.\./ || $path =~ ^\.\.$ ]] && die "Error: You've attempted to pass a sneaky path to pass. Go home."
-    done
 }
 
 #
@@ -240,9 +149,8 @@ cmd_usage() {
     echo
     cat <<-_EOF
         Usage:
-            $PROGRAM init [--path=subfolder,-p subfolder] gpg-id...
-                Initialize new password storage and use gpg-id for encryption.
-                Selectively reencrypt existing passwords using new gpg-id.
+            $PROGRAM init [--path=subfolder,-p subfolder]
+                Initialize new password storage.
             $PROGRAM [ls] [subfolder]
                 List passwords.
             $PROGRAM find pass-names...
@@ -266,9 +174,9 @@ cmd_usage() {
             $PROGRAM rm [--recursive,-r] [--force,-f] pass-name
                 Remove existing password or directory, optionally forcefully.
             $PROGRAM mv [--force,-f] old-path new-path
-                Renames or moves old-path to new-path, optionally forcefully, selectively reencrypting.
+                Renames or moves old-path to new-path, optionally forcefully.
             $PROGRAM cp [--force,-f] old-path new-path
-                Copies old-path to new-path, optionally forcefully, selectively reencrypting.
+                Copies old-path to new-path, optionally forcefully.
             $PROGRAM git git-command-args...
                 If the password store is a git repository, execute a git command
                 specified by git-command-args.
@@ -291,38 +199,12 @@ cmd_init() {
             --) shift; break ;;
         esac done
 
-        [[ $err -ne 0 ]] && die "Usage: $PROGRAM $COMMAND [--path=subfolder,-p subfolder] [gpg-id]..."
+        [[ $err -ne 0 ]] && die "Usage: $PROGRAM $COMMAND [--path=subfolder,-p subfolder]"
         [[ -n $id_path ]] && check_sneaky_paths "$id_path"
         [[ -n $id_path && ! -d $PREFIX/$id_path && -e $PREFIX/$id_path ]] && die "Error: $PREFIX/$id_path exists but is not a directory."
 
-        # When no gpg-id is given to the init command,
-        # initialize for symmetric encryption (don't create .gpg-id).
-        if [[ $# -eq 0 ]]; then
-            mkdir -v -p "$PREFIX/$id_path"
-            echo "Password store initialized."
-            return
-        fi
-
-        local gpg_id="$PREFIX/$id_path/.gpg-id"
-
-        if [[ $# -eq 1 && -z $1 ]]; then
-            [[ ! -f "$gpg_id" ]] && die "Error: $gpg_id does not exist and so cannot be removed."
-            rm -v -f "$gpg_id" || exit 1
-            if [[ -d $GIT_DIR ]]; then
-                git rm -qr "$gpg_id"
-                git_commit "Deinitialize ${gpg_id}."
-            fi
-            rmdir -p "${gpg_id%/*}" 2>/dev/null
-        else
-            mkdir -v -p "$PREFIX/$id_path"
-            printf "%s\n" "$@" > "$gpg_id"
-            local id_print="$(printf "%s, " "$@")"
-            echo "Password store initialized for ${id_print%, }"
-            git_add_file "$gpg_id" "Set GPG id to ${id_print%, }."
-        fi
-
-        reencrypt_path "$PREFIX/$id_path"
-        git_add_file "$PREFIX/$id_path" "Reencrypt password store using new GPG id ${id_print%, }."
+        mkdir -v -p "$PREFIX/$id_path"
+        echo "Password store initialized."
 }
 
 cmd_show() {
@@ -405,7 +287,6 @@ cmd_insert() {
         [[ $force -eq 0 && -e $passfile ]] && yesno "An entry already exists for $path. Overwrite it?"
 
         mkdir -p -v "$PREFIX/$(dirname "$path")"
-        set_gpg_recipients "$(dirname "$path")"
 
         if [[ $multiline -eq 1 ]]; then
             echo "Enter contents of $path and press Ctrl+D when finished:"
@@ -439,12 +320,10 @@ cmd_edit() {
     local path="$1"
     check_sneaky_paths "$path"
     mkdir -p -v "$PREFIX/$(dirname "$path")"
-    set_gpg_recipients "$(dirname "$path")"
     local passfile="$PREFIX/$path.gpg"
 
     tmpdir #Defines $SECURE_TMPDIR
     local tmp_file="$(mktemp -u "$SECURE_TMPDIR/XXXXXX")-${path//\//-}.txt"
-
 
     local action="Add"
     if [[ -f $passfile ]]; then
@@ -479,7 +358,6 @@ cmd_generate() {
         check_sneaky_paths "$path"
         [[ ! $length =~ ^[0-9]+$ ]] && die "Error: pass-length \"$length\" must be a number."
         mkdir -p -v "$PREFIX/$(dirname "$path")"
-        set_gpg_recipients "$(dirname "$path")"
         local passfile="$PREFIX/$path.gpg"
 
         [[ $inplace -eq 0 && $force -eq 0 && -e $passfile ]] && yesno "An entry already exists for $path. Overwrite it?"
@@ -569,7 +447,6 @@ cmd_copy_move() {
 
         if [[ $move -eq 1 ]]; then
             mv $interactive -v "$old_path" "$new_path" || exit 1
-            [[ -e "$new_path" ]] && reencrypt_path "$new_path"
 
             if [[ -d $GIT_DIR && ! -e $old_path ]]; then
                 git rm -qr "$old_path"
@@ -578,7 +455,6 @@ cmd_copy_move() {
             rmdir -p "$old_dir" 2>/dev/null
         else
             cp $interactive -r -v "$old_path" "$new_path" || exit 1
-            [[ -e "$new_path" ]] && reencrypt_path "$new_path"
             git_add_file "$new_path" "Copy ${1} to ${2}."
         fi
 }
