@@ -194,17 +194,19 @@ cmd_init() {
     opts="$($GETOPT -o p: -l path: -n "$PROGRAM" -- "$@")"
     local err=$?
     eval set -- "$opts"
-    while true; do case $1 in
+    while true; do
+        case $1 in
             -p|--path) id_path="$2"; shift 2 ;;
             --) shift; break ;;
-        esac done
+        esac
+    done
 
-        [[ $err -ne 0 ]] && die "Usage: $PROGRAM $COMMAND [--path=subfolder,-p subfolder]"
-        [[ -n $id_path ]] && check_sneaky_paths "$id_path"
-        [[ -n $id_path && ! -d $PREFIX/$id_path && -e $PREFIX/$id_path ]] && die "Error: $PREFIX/$id_path exists but is not a directory."
+    [[ $err -ne 0 ]] && die "Usage: $PROGRAM $COMMAND [--path=subfolder,-p subfolder]"
+    [[ -n $id_path ]] && check_sneaky_paths "$id_path"
+    [[ -n $id_path && ! -d $PREFIX/$id_path && -e $PREFIX/$id_path ]] && die "Error: $PREFIX/$id_path exists but is not a directory."
 
-        mkdir -v -p "$PREFIX/$id_path"
-        echo "Password store initialized."
+    mkdir -v -p "$PREFIX/$id_path"
+    echo "Password store initialized."
 }
 
 cmd_show() {
@@ -212,36 +214,38 @@ cmd_show() {
     opts="$($GETOPT -o c -l clip -n "$PROGRAM" -- "$@")"
     local err=$?
     eval set -- "$opts"
-    while true; do case $1 in
+    while true; do
+        case $1 in
             -c|--clip) clip=1; shift ;;
             --) shift; break ;;
-        esac done
+        esac
+    done
 
-        [[ $err -ne 0 ]] && die "Usage: $PROGRAM $COMMAND [--clip,-c] [pass-name]"
+    [[ $err -ne 0 ]] && die "Usage: $PROGRAM $COMMAND [--clip,-c] [pass-name]"
 
-        local path="$1"
-        local passfile="$PREFIX/$path.gpg"
-        check_sneaky_paths "$path"
-        if [[ -f $passfile ]]; then
-            if [[ $clip -eq 0 ]]; then
-                decrypt "$passfile" || exit $?
-            else
-                local pass="$(decrypt "$passfile" | head -n 1)"
-                [[ -n $pass ]] || exit 1
-                clip "$pass" "$path"
-            fi
-        elif [[ -d $PREFIX/$path ]]; then
-            if [[ -z $path ]]; then
-                echo "Password Store"
-            else
-                echo "${path%\/}"
-            fi
-            tree -C -l --noreport "$PREFIX/$path" | tail -n +2 | sed -E 's/\.gpg(\x1B\[[0-9]+m)?( ->|$)/\1\2/g' # remove .gpg at end of line, but keep colors
-        elif [[ -z $path ]]; then
-            die "Error: password store is empty. Try \"pass init\"."
+    local path="$1"
+    local passfile="$PREFIX/$path.gpg"
+    check_sneaky_paths "$path"
+    if [[ -f $passfile ]]; then
+        if [[ $clip -eq 0 ]]; then
+            decrypt "$passfile" || exit $?
         else
-            die "Error: $path is not in the password store."
+            local pass="$(decrypt "$passfile" | head -n 1)"
+            [[ -n $pass ]] || exit 1
+            clip "$pass" "$path"
         fi
+    elif [[ -d $PREFIX/$path ]]; then
+        if [[ -z $path ]]; then
+            echo "Password Store"
+        else
+            echo "${path%\/}"
+        fi
+        tree -C -l --noreport "$PREFIX/$path" | tail -n +2 | sed -E 's/\.gpg(\x1B\[[0-9]+m)?( ->|$)/\1\2/g' # remove .gpg at end of line, but keep colors
+    elif [[ -z $path ]]; then
+        die "Error: password store is empty. Try \"pass init\"."
+    else
+        die "Error: $path is not in the password store."
+    fi
 }
 
 cmd_find() {
@@ -272,46 +276,48 @@ cmd_insert() {
     opts="$($GETOPT -o mef -l multiline,echo,force -n "$PROGRAM" -- "$@")"
     local err=$?
     eval set -- "$opts"
-    while true; do case $1 in
+    while true; do
+        case $1 in
             -m|--multiline) multiline=1; shift ;;
             -e|--echo) noecho=0; shift ;;
             -f|--force) force=1; shift ;;
             --) shift; break ;;
-        esac done
+        esac
+    done
 
-        [[ $err -ne 0 || ( $multiline -eq 1 && $noecho -eq 0 ) || $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND [--echo,-e | --multiline,-m] [--force,-f] pass-name"
-        local path="$1"
-        local passfile="$PREFIX/$path.gpg"
-        check_sneaky_paths "$path"
+    [[ $err -ne 0 || ( $multiline -eq 1 && $noecho -eq 0 ) || $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND [--echo,-e | --multiline,-m] [--force,-f] pass-name"
+    local path="$1"
+    local passfile="$PREFIX/$path.gpg"
+    check_sneaky_paths "$path"
 
-        [[ $force -eq 0 && -e $passfile ]] && yesno "An entry already exists for $path. Overwrite it?"
+    [[ $force -eq 0 && -e $passfile ]] && yesno "An entry already exists for $path. Overwrite it?"
 
-        mkdir -p -v "$PREFIX/$(dirname "$path")"
+    mkdir -p -v "$PREFIX/$(dirname "$path")"
 
-        if [[ $multiline -eq 1 ]]; then
-            echo "Enter contents of $path and press Ctrl+D when finished:"
+    if [[ $multiline -eq 1 ]]; then
+        echo "Enter contents of $path and press Ctrl+D when finished:"
+        echo
+        encrypt -o "$passfile" || exit 1
+    elif [[ $noecho -eq 1 ]]; then
+        local password password_again
+        while true; do
+            read -r -p "Enter password for $path: " -s password || exit 1
             echo
-            encrypt -o "$passfile" || exit 1
-        elif [[ $noecho -eq 1 ]]; then
-            local password password_again
-            while true; do
-                read -r -p "Enter password for $path: " -s password || exit 1
-                echo
-                read -r -p "Retype password for $path: " -s password_again || exit 1
-                echo
-                if [[ $password == "$password_again" ]]; then
-                    encrypt -o "$passfile" <<<"$password"
-                    break
-                else
-                    echo "Error: the entered passwords do not match."
-                fi
-            done
-        else
-            local password
-            read -r -p "Enter password for $path: " -e password
-            encrypt -o "$passfile" <<<"$password"
-        fi
-        git_add_file "$passfile" "Add given password for $path to store."
+            read -r -p "Retype password for $path: " -s password_again || exit 1
+            echo
+            if [[ $password == "$password_again" ]]; then
+                encrypt -o "$passfile" <<<"$password"
+                break
+            else
+                echo "Error: the entered passwords do not match."
+            fi
+        done
+    else
+        local password
+        read -r -p "Enter password for $path: " -e password
+        encrypt -o "$passfile" <<<"$password"
+    fi
+    git_add_file "$passfile" "Add given password for $path to store."
 }
 
 cmd_edit() {
@@ -344,46 +350,48 @@ cmd_generate() {
     opts="$($GETOPT -o ncif -l no-symbols,clip,in-place,force -n "$PROGRAM" -- "$@")"
     local err=$?
     eval set -- "$opts"
-    while true; do case $1 in
+    while true; do
+        case $1 in
             -n|--no-symbols) symbols=""; shift ;;
             -c|--clip) clip=1; shift ;;
             -f|--force) force=1; shift ;;
             -i|--in-place) inplace=1; shift ;;
             --) shift; break ;;
-        esac done
+        esac
+    done
 
-        [[ $err -ne 0 || $# -ne 2 || ( $force -eq 1 && $inplace -eq 1 ) ]] && die "Usage: $PROGRAM $COMMAND [--no-symbols,-n] [--clip,-c] [--in-place,-i | --force,-f] pass-name pass-length"
-        local path="$1"
-        local length="$2"
-        check_sneaky_paths "$path"
-        [[ ! $length =~ ^[0-9]+$ ]] && die "Error: pass-length \"$length\" must be a number."
-        mkdir -p -v "$PREFIX/$(dirname "$path")"
-        local passfile="$PREFIX/$path.gpg"
+    [[ $err -ne 0 || $# -ne 2 || ( $force -eq 1 && $inplace -eq 1 ) ]] && die "Usage: $PROGRAM $COMMAND [--no-symbols,-n] [--clip,-c] [--in-place,-i | --force,-f] pass-name pass-length"
+    local path="$1"
+    local length="$2"
+    check_sneaky_paths "$path"
+    [[ ! $length =~ ^[0-9]+$ ]] && die "Error: pass-length \"$length\" must be a number."
+    mkdir -p -v "$PREFIX/$(dirname "$path")"
+    local passfile="$PREFIX/$path.gpg"
 
-        [[ $inplace -eq 0 && $force -eq 0 && -e $passfile ]] && yesno "An entry already exists for $path. Overwrite it?"
+    [[ $inplace -eq 0 && $force -eq 0 && -e $passfile ]] && yesno "An entry already exists for $path. Overwrite it?"
 
-        local pass="$(pwgen -s $symbols $length 1)"
-        [[ -n $pass ]] || exit 1
-        if [[ $inplace -eq 0 ]]; then
-            encrypt -o "$passfile" <<<"$pass"
+    local pass="$(pwgen -s $symbols $length 1)"
+    [[ -n $pass ]] || exit 1
+    if [[ $inplace -eq 0 ]]; then
+        encrypt -o "$passfile" <<<"$pass"
+    else
+        local passfile_temp="${passfile}.tmp.${RANDOM}.${RANDOM}.${RANDOM}.${RANDOM}.--"
+        if decrypt "$passfile" | sed $'1c \\\n'"$(sed 's/[\/&]/\\&/g' <<<"$pass")"$'\n' | encrypt -o "$passfile_temp"; then
+            mv "$passfile_temp" "$passfile"
         else
-            local passfile_temp="${passfile}.tmp.${RANDOM}.${RANDOM}.${RANDOM}.${RANDOM}.--"
-            if decrypt "$passfile" | sed $'1c \\\n'"$(sed 's/[\/&]/\\&/g' <<<"$pass")"$'\n' | encrypt -o "$passfile_temp"; then
-                mv "$passfile_temp" "$passfile"
-            else
-                rm -f "$passfile_temp"
-                die "Could not reencrypt new password."
-            fi
+            rm -f "$passfile_temp"
+            die "Could not reencrypt new password."
         fi
-        local verb="Add"
-        [[ $inplace -eq 1 ]] && verb="Replace"
-        git_add_file "$passfile" "$verb generated password for ${path}."
+    fi
+    local verb="Add"
+    [[ $inplace -eq 1 ]] && verb="Replace"
+    git_add_file "$passfile" "$verb generated password for ${path}."
 
-        if [[ $clip -eq 0 ]]; then
-            printf "\e[1m\e[37mThe generated password for \e[4m%s\e[24m is:\e[0m\n\e[1m\e[93m%s\e[0m\n" "$path" "$pass"
-        else
-            clip "$pass" "$path"
-        fi
+    if [[ $clip -eq 0 ]]; then
+        printf "\e[1m\e[37mThe generated password for \e[4m%s\e[24m is:\e[0m\n\e[1m\e[93m%s\e[0m\n" "$path" "$pass"
+    else
+        clip "$pass" "$path"
+    fi
 }
 
 cmd_delete() {
@@ -391,29 +399,31 @@ cmd_delete() {
     opts="$($GETOPT -o rf -l recursive,force -n "$PROGRAM" -- "$@")"
     local err=$?
     eval set -- "$opts"
-    while true; do case $1 in
+    while true; do
+        case $1 in
             -r|--recursive) recursive="-r"; shift ;;
             -f|--force) force=1; shift ;;
             --) shift; break ;;
-        esac done
-        [[ $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND [--recursive,-r] [--force,-f] pass-name"
-        local path="$1"
-        check_sneaky_paths "$path"
+        esac
+    done
+    [[ $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND [--recursive,-r] [--force,-f] pass-name"
+    local path="$1"
+    check_sneaky_paths "$path"
 
-        local passfile="$PREFIX/${path%/}"
-        if [[ ! -d $passfile ]]; then
-            passfile="$PREFIX/$path.gpg"
-            [[ ! -f $passfile ]] && die "Error: $path is not in the password store."
-        fi
+    local passfile="$PREFIX/${path%/}"
+    if [[ ! -d $passfile ]]; then
+        passfile="$PREFIX/$path.gpg"
+        [[ ! -f $passfile ]] && die "Error: $path is not in the password store."
+    fi
 
-        [[ $force -eq 1 ]] || yesno "Are you sure you would like to delete $path?"
+    [[ $force -eq 1 ]] || yesno "Are you sure you would like to delete $path?"
 
-        rm $recursive -f -v "$passfile"
-        if [[ -d $GIT_DIR && ! -e $passfile ]]; then
-            git rm -qr "$passfile"
-            git_commit "Remove $path from store."
-        fi
-        rmdir -p "${passfile%/*}" 2>/dev/null
+    rm $recursive -f -v "$passfile"
+    if [[ -d $GIT_DIR && ! -e $passfile ]]; then
+        git rm -qr "$passfile"
+        git_commit "Remove $path from store."
+    fi
+    rmdir -p "${passfile%/*}" 2>/dev/null
 }
 
 cmd_copy_move() {
@@ -423,40 +433,42 @@ cmd_copy_move() {
     opts="$($GETOPT -o f -l force -n "$PROGRAM" -- "$@")"
     local err=$?
     eval set -- "$opts"
-    while true; do case $1 in
+    while true; do
+        case $1 in
             -f|--force) force=1; shift ;;
             --) shift; break ;;
-        esac done
-        [[ $# -ne 2 ]] && die "Usage: $PROGRAM $COMMAND [--force,-f] old-path new-path"
-        check_sneaky_paths "$@"
-        local old_path="$PREFIX/${1%/}"
-        local new_path="$PREFIX/$2"
-        local old_dir="$old_path"
+        esac
+    done
+    [[ $# -ne 2 ]] && die "Usage: $PROGRAM $COMMAND [--force,-f] old-path new-path"
+    check_sneaky_paths "$@"
+    local old_path="$PREFIX/${1%/}"
+    local new_path="$PREFIX/$2"
+    local old_dir="$old_path"
 
-        if [[ ! -d $old_path ]]; then
-            old_dir="${old_path%/*}"
-            old_path="${old_path}.gpg"
-            [[ ! -f $old_path ]] && die "Error: $1 is not in the password store."
+    if [[ ! -d $old_path ]]; then
+        old_dir="${old_path%/*}"
+        old_path="${old_path}.gpg"
+        [[ ! -f $old_path ]] && die "Error: $1 is not in the password store."
+    fi
+
+    mkdir -p -v "${new_path%/*}"
+    [[ -d $old_path || -d $new_path || $new_path =~ /$ ]] || new_path="${new_path}.gpg"
+
+    local interactive="-i"
+    [[ ! -t 0 || $force -eq 1 ]] && interactive="-f"
+
+    if [[ $move -eq 1 ]]; then
+        mv $interactive -v "$old_path" "$new_path" || exit 1
+
+        if [[ -d $GIT_DIR && ! -e $old_path ]]; then
+            git rm -qr "$old_path"
+            git_add_file "$new_path" "Rename ${1} to ${2}."
         fi
-
-        mkdir -p -v "${new_path%/*}"
-        [[ -d $old_path || -d $new_path || $new_path =~ /$ ]] || new_path="${new_path}.gpg"
-
-        local interactive="-i"
-        [[ ! -t 0 || $force -eq 1 ]] && interactive="-f"
-
-        if [[ $move -eq 1 ]]; then
-            mv $interactive -v "$old_path" "$new_path" || exit 1
-
-            if [[ -d $GIT_DIR && ! -e $old_path ]]; then
-                git rm -qr "$old_path"
-                git_add_file "$new_path" "Rename ${1} to ${2}."
-            fi
-            rmdir -p "$old_dir" 2>/dev/null
-        else
-            cp $interactive -r -v "$old_path" "$new_path" || exit 1
-            git_add_file "$new_path" "Copy ${1} to ${2}."
-        fi
+        rmdir -p "$old_dir" 2>/dev/null
+    else
+        cp $interactive -r -v "$old_path" "$new_path" || exit 1
+        git_add_file "$new_path" "Copy ${1} to ${2}."
+    fi
 }
 
 cmd_git() {
@@ -485,18 +497,18 @@ PROGRAM="${0##*/}"
 COMMAND="$1"
 
 case "$1" in
-    init) shift;                        cmd_init "$@" ;;
+    init) shift;                cmd_init "$@" ;;
     help|--help) shift;         cmd_usage "$@" ;;
     version|--version) shift;   cmd_version "$@" ;;
-    show|ls|list) shift;                cmd_show "$@" ;;
+    show|ls|list) shift;        cmd_show "$@" ;;
     find|search) shift;         cmd_find "$@" ;;
-    grep) shift;                        cmd_grep "$@" ;;
+    grep) shift;                cmd_grep "$@" ;;
     insert|add) shift;          cmd_insert "$@" ;;
-    edit) shift;                        cmd_edit "$@" ;;
+    edit) shift;                cmd_edit "$@" ;;
     generate) shift;            cmd_generate "$@" ;;
     delete|rm|remove) shift;    cmd_delete "$@" ;;
     rename|mv) shift;           cmd_copy_move "move" "$@" ;;
-    copy|cp) shift;                     cmd_copy_move "copy" "$@" ;;
+    copy|cp) shift;             cmd_copy_move "copy" "$@" ;;
     git) shift;                 cmd_git "$@" ;;
     *) COMMAND="show";          cmd_show "$@" ;;
 esac
