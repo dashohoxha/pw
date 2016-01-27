@@ -258,7 +258,7 @@ cmd_find() {
     [[ -z "$@" ]] && die "Usage: $PROGRAM $COMMAND pass-names..."
     IFS="," eval 'echo "Search Terms: $*"'
     local terms="*$(printf '%s*|*' "$@")"
-    tree -C -l --noreport -P "${terms%|*}" --prune --matchdirs --ignore-case "$PREFIX" | tail -n +2 | sed -E 's/\.gpg(\x1B\[[0-9]+m)?( ->|$)/\1\2/g'
+    tree -C -l --noreport -P "${terms%|*}" --prune "$PREFIX" | tail -n +2 | sed -E 's/\.gpg(\x1B\[[0-9]+m)?( ->|$)/\1\2/g'
 }
 
 cmd_grep() {
