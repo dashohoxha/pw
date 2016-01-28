@@ -23,10 +23,10 @@ export GIT_WORK_TREE="${PASSWORD_STORE_GIT:-$HOMEDIR}"
 # BEGIN helper functions
 #
 
-encrypt() {
+gpg_encrypt() {
     $GPG -c $GPG_OPTS --cipher-algo=AES256 "$@"
 }
-decrypt() {
+gpg_decrypt() {
     $GPG -o - $GPG_OPTS "$@"
 }
 
@@ -35,13 +35,13 @@ archive_init() {
     archive_lock
 }
 archive_lock() {
-    tar -czf - -C $WORKDIR . | encrypt -o $HOMEDIR/pass.tgz.gpg.1
+    tar -czf - -C $WORKDIR . | gpg_encrypt -o $HOMEDIR/pass.tgz.gpg.1
     mv -f $HOMEDIR/pass.tgz.gpg{.1,}
     rm -rf $WORKDIR
 }
 archive_unlock() {
     make_workdir
-    cat $HOMEDIR/pass.tgz.gpg | decrypt | tar -xzf - -C $WORKDIR
+    cat $HOMEDIR/pass.tgz.gpg | gpg_decrypt | tar -xzf - -C $WORKDIR
 }
 
 git_add_file() {
