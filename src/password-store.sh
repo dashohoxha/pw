@@ -135,7 +135,6 @@ _EOF
         }
         trap shred_tmpfile INT TERM EXIT
     fi
-
 }
 
 GETOPT="getopt"
@@ -233,13 +232,13 @@ cmd_show() {
     [[ $err -ne 0 ]] && die "Usage: $PROGRAM $COMMAND [--clip,-c] [pass-name]"
 
     local path="$1"
-    local passfile="$WORKDIR/$path.gpg"
+    local passfile="$WORKDIR/$path"
     check_sneaky_paths "$path"
     if [[ -f $passfile ]]; then
         if [[ $clip -eq 0 ]]; then
-            decrypt "$passfile" || exit $?
+            cat "$passfile" || exit $?
         else
-            local pass="$(decrypt "$passfile" | head -n 1)"
+            local pass="$(cat "$passfile" | head -n 1)"
             [[ -n $pass ]] || exit 1
             clip "$pass" "$path"
         fi
@@ -249,7 +248,7 @@ cmd_show() {
         else
             echo "${path%\/}"
         fi
-        tree -C -l --noreport "$WORKDIR/$path" | tail -n +2 | sed -E 's/\.gpg(\x1B\[[0-9]+m)?( ->|$)/\1\2/g' # remove .gpg at end of line, but keep colors
+        tree -C -l --noreport "$WORKDIR/$path" | tail -n +2 
     elif [[ -z $path ]]; then
         die "Error: password store is empty. Try \"pass init\"."
     else
@@ -261,23 +260,22 @@ cmd_find() {
     [[ -z "$@" ]] && die "Usage: $PROGRAM $COMMAND pass-names..."
     IFS="," eval 'echo "Search Terms: $*"'
     local terms="*$(printf '%s*|*' "$@")"
-    tree -C -l --noreport -P "${terms%|*}" --prune "$WORKDIR" | tail -n +2 | sed -E 's/\.gpg(\x1B\[[0-9]+m)?( ->|$)/\1\2/g'
+    tree -C -l --noreport -P "${terms%|*}" --prune "$WORKDIR" | tail -n +2 
 }
 
 cmd_grep() {
     [[ $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND search-string"
     local search="$1" passfile grepresults
     while read -r -d "" passfile; do
-        grepresults="$(decrypt "$passfile" | grep --color=always "$search")"
+        grepresults="$(cat "$passfile" | grep --color=always "$search")"
         [ $? -ne 0 ] && continue
-        passfile="${passfile%.gpg}"
         passfile="${passfile#$WORKDIR/}"
         local passfile_dir="${passfile%/*}/"
         [[ $passfile_dir == "${passfile}/" ]] && passfile_dir=""
         passfile="${passfile##*/}"
         printf "\e[94m%s\e[1m%s\e[0m:\n" "$passfile_dir" "$passfile"
         echo "$grepresults"
-    done < <(find -L "$WORKDIR" -iname '*.gpg' -print0)
+    done < <(find -L "$WORKDIR" -type f -print0)
 }
 
 cmd_insert() {
@@ -296,7 +294,7 @@ cmd_insert() {
 
     [[ $err -ne 0 || ( $multiline -eq 1 && $noecho -eq 0 ) || $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND [--echo,-e | --multiline,-m] [--force,-f] pass-name"
     local path="$1"
-    local passfile="$WORKDIR/$path.gpg"
+    local passfile="$WORKDIR/$path"
     check_sneaky_paths "$path"
 
     [[ $force -eq 0 && -e $passfile ]] && yesno "An entry already exists for $path. Overwrite it?"
@@ -306,7 +304,7 @@ cmd_insert() {
     if [[ $multiline -eq 1 ]]; then
         echo "Enter contents of $path and press Ctrl+D when finished:"
         echo
-        encrypt -o "$passfile" || exit 1
+        cat > "$passfile" || exit 1
     elif [[ $noecho -eq 1 ]]; then
         local password password_again
         while true; do
@@ -315,7 +313,7 @@ cmd_insert() {
             read -r -p "Retype password for $path: " -s password_again || exit 1
             echo
             if [[ $password == "$password_again" ]]; then
-                encrypt -o "$passfile" <<<"$password"
+                cat <<< "$password" > "$passfile"
                 break
             else
                 echo "Error: the entered passwords do not match."
@@ -324,7 +322,7 @@ cmd_insert() {
     else
         local password
         read -r -p "Enter password for $path: " -e password
-        encrypt -o "$passfile" <<<"$password"
+        cat <<< "$password" > "$passfile"
     fi
     git_add_file "$passfile" "Add given password for $path to store."
 }
@@ -335,20 +333,12 @@ cmd_edit() {
     local path="$1"
     check_sneaky_paths "$path"
     mkdir -p -v "$WORKDIR/$(dirname "$path")"
-    local passfile="$WORKDIR/$path.gpg"
-    local tmp_file="$passfile.txt"
+    local passfile="$WORKDIR/$path"
 
     local action="Add"
-    if [[ -f $passfile ]]; then
-        decrypt -o "$tmp_file" "$passfile" || exit 1
-        action="Edit"
-    fi
-    ${EDITOR:-vi} "$tmp_file"
-    [[ -f $tmp_file ]] || die "New password not saved."
-    decrypt -o - "$passfile" 2>/dev/null | diff - "$tmp_file" &>/dev/null && die "Password unchanged."
-    while ! encrypt -o "$passfile" "$tmp_file"; do
-        yesno "GPG encryption failed. Would you like to try again?"
-    done
+    [[ -f $passfile ]] && action="Edit"
+
+    ${EDITOR:-vi} "$passfile"
     git_add_file "$passfile" "$action password for $path using ${EDITOR:-vi}."
     rm -f $tmp_file
 }
@@ -374,22 +364,19 @@ cmd_generate() {
     check_sneaky_paths "$path"
     [[ ! $length =~ ^[0-9]+$ ]] && die "Error: pass-length \"$length\" must be a number."
     mkdir -p -v "$WORKDIR/$(dirname "$path")"
-    local passfile="$WORKDIR/$path.gpg"
+    local passfile="$WORKDIR/$path"
 
     [[ $inplace -eq 0 && $force -eq 0 && -e $passfile ]] && yesno "An entry already exists for $path. Overwrite it?"
 
     local pass="$(pwgen -s $symbols $length 1)"
     [[ -n $pass ]] || exit 1
     if [[ $inplace -eq 0 ]]; then
-        encrypt -o "$passfile" <<<"$pass"
+        cat <<< "$pass" > "$passfile"
     else
         local passfile_temp="${passfile}.tmp.${RANDOM}.${RANDOM}.${RANDOM}.${RANDOM}.--"
-        if decrypt "$passfile" | sed $'1c \\\n'"$(sed 's/[\/&]/\\&/g' <<<"$pass")"$'\n' | encrypt -o "$passfile_temp"; then
-            mv "$passfile_temp" "$passfile"
-        else
-            rm -f "$passfile_temp"
-            die "Could not reencrypt new password."
-        fi
+        cat "$passfile" | sed $'1c \\\n'"$(sed 's/[\/&]/\\&/g' <<<"$pass")"$'\n' > "$passfile_temp"
+        mv "$passfile_temp" "$passfile"
+        rm -f "$passfile_temp"
     fi
     local verb="Add"
     [[ $inplace -eq 1 ]] && verb="Replace"
@@ -420,7 +407,7 @@ cmd_delete() {
 
     local passfile="$WORKDIR/${path%/}"
     if [[ ! -d $passfile ]]; then
-        passfile="$WORKDIR/$path.gpg"
+        passfile="$WORKDIR/$path"
         [[ ! -f $passfile ]] && die "Error: $path is not in the password store."
     fi
 
@@ -455,12 +442,12 @@ cmd_copy_move() {
 
     if [[ ! -d $old_path ]]; then
         old_dir="${old_path%/*}"
-        old_path="${old_path}.gpg"
+        old_path="${old_path}"
         [[ ! -f $old_path ]] && die "Error: $1 is not in the password store."
     fi
 
     mkdir -p -v "${new_path%/*}"
-    [[ -d $old_path || -d $new_path || $new_path =~ /$ ]] || new_path="${new_path}.gpg"
+    [[ -d $old_path || -d $new_path || $new_path =~ /$ ]] || new_path="${new_path}"
 
     local interactive="-i"
     [[ ! -t 0 || $force -eq 1 ]] && interactive="-f"
@@ -483,13 +470,7 @@ cmd_git() {
     if [[ $1 == "init" ]]; then
         git "$@" || exit 1
         git_add_file "$WORKDIR" "Add current contents of password store."
-
-        echo '*.gpg diff=gpg' > "$WORKDIR/.gitattributes"
-        git_add_file .gitattributes "Configure git repository for gpg file diff."
-        git config --local diff.gpg.binary true
-        git config --local diff.gpg.textconv "$GPG -o - $GPG_OPTS"
     elif [[ -d $GIT_DIR ]]; then
-        make_workdir nowarn #Defines $WORKDIR. We don't warn, because at most, this only copies encrypted files.
         export TMPDIR="$WORKDIR"
         git "$@"
     else
