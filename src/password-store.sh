@@ -12,7 +12,7 @@ export GPG_TTY="${GPG_TTY:-$(tty 2>/dev/null)}"
 which gpg2 &>/dev/null && GPG="gpg2"
 [[ -n $GPG_AGENT_INFO || $GPG == "gpg2" ]] && GPG_OPTS="$GPG_OPTS --batch --use-agent"
 
-HOMEDIR="${PASSWORD_STORE_DIR:-$HOME/.simple-password-store}"
+HOMEDIR="${PASSWORD_STORE_DIR:-$HOME/.pass}"
 X_SELECTION="${PASSWORD_STORE_X_SELECTION:-clipboard}"
 CLIP_TIME="${PASSWORD_STORE_CLIP_TIME:-45}"
 
@@ -35,13 +35,13 @@ archive_init() {
     archive_lock
 }
 archive_lock() {
-    tar -czf - -C $WORKDIR . | encrypt -o $HOMEDIR/archive.tgz.gpg.1
-    mv -f $HOMEDIR/archive.tgz.gpg{.1,}
+    tar -czf - -C $WORKDIR . | encrypt -o $HOMEDIR/pass.tgz.gpg.1
+    mv -f $HOMEDIR/pass.tgz.gpg{.1,}
     rm -rf $WORKDIR
 }
 archive_unlock() {
     make_workdir
-    cat $HOMEDIR/archive.tgz.gpg | decrypt | tar -xzf - -C $WORKDIR
+    cat $HOMEDIR/pass.tgz.gpg | decrypt | tar -xzf - -C $WORKDIR
 }
 
 git_add_file() {
