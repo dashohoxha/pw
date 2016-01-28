@@ -484,6 +484,7 @@ cmd_git() {
 PROGRAM="${0##*/}"
 COMMAND="$1"
 
+run_cmd() {
 case "$1" in
     init)
         shift
@@ -573,6 +574,9 @@ case "$1" in
         cmd_show "$@"
         ;;
 esac
+}
+
+run_cmd "$@"
 
 [[ -n $WORKDIR ]] && rm -rf $WORKDIR
 
