@@ -6,33 +6,31 @@
 umask 077
 set -o pipefail
 
-GPG_OPTS="--quiet --yes --compress-algo=none --no-encrypt-to"
-GPG="gpg"
-export GPG_TTY="${GPG_TTY:-$(tty 2>/dev/null)}"
-which gpg2 &>/dev/null && GPG="gpg2"
-[[ -n $GPG_AGENT_INFO || $GPG == "gpg2" ]] && GPG_OPTS="$GPG_OPTS --batch --use-agent"
-
 HOMEDIR="${PASSWORD_STORE_DIR:-$HOME/.pass}"
 X_SELECTION="${PASSWORD_STORE_X_SELECTION:-clipboard}"
 CLIP_TIME="${PASSWORD_STORE_CLIP_TIME:-45}"
-
-export GIT_DIR="${PASSWORD_STORE_GIT:-$HOMEDIR}/.git"
-export GIT_WORK_TREE="${PASSWORD_STORE_GIT:-$HOMEDIR}"
 
 #
 # BEGIN helper functions
 #
 
-passphrase() {
-    [[ -z $PASSPHRASE ]] || return
-    read -r -p "Enter master password: " -s PASSPHRASE || exit 1
-    echo
-}
+GPG="gpg"
+which gpg2 &>/dev/null && GPG="gpg2"
+
 encrypt() {
-    $GPG -c $GPG_OPTS --passphrase="$PASSPHRASE" --cipher-algo=AES256 "$@"
+    $GPG -o $1 --symmetric --passphrase="$PASSPHRASE" \
+         --quiet --yes --batch \
+         --compress-algo=none --cipher-algo=AES256
 }
 decrypt() {
-    $GPG -o - $GPG_OPTS --passphrase="$PASSPHRASE" "$@"
+    $GPG -o - --passphrase="$PASSPHRASE" \
+         --quiet --yes --batch
+}
+
+passphrase() {
+    [[ -z $PASSPHRASE ]] || return
+    read -r -p "Enter passphrase: " -s PASSPHRASE || exit 1
+    echo
 }
 
 archive_init() {
@@ -41,7 +39,7 @@ archive_init() {
 }
 archive_lock() {
     passphrase
-    tar -czf - -C $WORKDIR . | encrypt -o $HOMEDIR/pass.tgz.gpg.1
+    tar -czf - -C $WORKDIR . | encrypt $HOMEDIR/pass.tgz.gpg.1
     mv -f $HOMEDIR/pass.tgz.gpg{.1,}
     rm -rf $WORKDIR
 }
@@ -297,7 +295,7 @@ cmd_insert() {
 
     [[ $force -eq 0 && -e $passfile ]] && yesno "An entry already exists for $path. Overwrite it?"
 
-    mkdir -p -v "$WORKDIR/$(dirname "$path")"
+    mkdir -p "$WORKDIR/$(dirname "$path")"
 
     if [[ $multiline -eq 1 ]]; then
         echo "Enter contents of $path and press Ctrl+D when finished:"
@@ -330,7 +328,7 @@ cmd_edit() {
 
     local path="$1"
     check_sneaky_paths "$path"
-    mkdir -p -v "$WORKDIR/$(dirname "$path")"
+    mkdir -p "$WORKDIR/$(dirname "$path")"
     local passfile="$WORKDIR/$path"
 
     local action="Add"
@@ -361,7 +359,7 @@ cmd_generate() {
     local length="$2"
     check_sneaky_paths "$path"
     [[ ! $length =~ ^[0-9]+$ ]] && die "Error: pass-length \"$length\" must be a number."
-    mkdir -p -v "$WORKDIR/$(dirname "$path")"
+    mkdir -p "$WORKDIR/$(dirname "$path")"
     local passfile="$WORKDIR/$path"
 
     [[ $inplace -eq 0 && $force -eq 0 && -e $passfile ]] && yesno "An entry already exists for $path. Overwrite it?"
@@ -444,7 +442,7 @@ cmd_copy_move() {
         [[ ! -f $old_path ]] && die "Error: $1 is not in the password store."
     fi
 
-    mkdir -p -v "${new_path%/*}"
+    mkdir -p "${new_path%/*}"
     [[ -d $old_path || -d $new_path || $new_path =~ /$ ]] || new_path="${new_path}"
 
     local interactive="-i"
@@ -465,6 +463,9 @@ cmd_copy_move() {
 }
 
 cmd_git() {
+    export GIT_DIR="$WORKDIR/.git"
+    export GIT_WORK_TREE="$WORKDIR"
+
     if [[ $1 == "init" ]]; then
         git "$@" || exit 1
         git_add_file "$WORKDIR" "Add current contents of password store."
