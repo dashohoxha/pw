@@ -486,91 +486,78 @@ COMMAND="$1"
 
 run_cmd() {
     case "$1" in
-        init)
-            shift
+        init) shift
             cmd_init "$@"
             ;;
 
-        help|--help)
-            shift
+        help|--help) shift
             cmd_usage "$@"
             ;;
 
-        version|--version)
-            shift
+        version|--version) shift
             cmd_version "$@"
             ;;
 
-        show|ls|list)
+        show|ls|list) shift
             archive_unlock
-            shift
             cmd_show "$@"
             ;;
 
-        find|search)
+        find|search) shift
             archive_unlock
-            shift
             cmd_find "$@"
             ;;
 
-        grep)
+        grep) shift
             archive_unlock
-            shift
             cmd_grep "$@"
             ;;
 
-        insert|add)
+        insert|add) shift
             archive_unlock
-            shift
             cmd_insert "$@"
             archive_lock
             ;;
 
-        edit)
+        edit) shift
             archive_unlock
-            shift
             cmd_edit "$@"
             archive_lock
             ;;
 
-        generate)
+        generate) shift
             archive_unlock
-            shift
             cmd_generate "$@"
             archive_lock
             ;;
 
-        delete|rm|remove)
+        delete|rm|remove) shift
             archive_unlock
-            shift
             cmd_delete "$@"
             archive_lock
             ;;
 
-        rename|mv)
+        rename|mv) shift
             archive_unlock
-            shift
             cmd_copy_move "move" "$@"
             archive_lock
             ;;
 
-        copy|cp)
+        copy|cp) shift
             archive_unlock
-            shift
             cmd_copy_move "copy" "$@"
             archive_lock
             ;;
 
-        git)
+        git) shift
             archive_unlock
-            shift
             cmd_git "$@"
             archive_lock
             ;;
 
         *)
-            archive_unlock
             COMMAND="show";
+            archive_unlock
             cmd_show "$@"
             ;;
     esac
