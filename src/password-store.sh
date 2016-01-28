@@ -24,10 +24,16 @@ export GIT_WORK_TREE="${PASSWORD_STORE_GIT:-$HOMEDIR}"
 #
 
 gpg_encrypt() {
-    $GPG -c $GPG_OPTS --cipher-algo=AES256 "$@"
+    $GPG -c $GPG_OPTS --passphrase="$PASSPHRASE" --cipher-algo=AES256 "$@"
 }
 gpg_decrypt() {
-    $GPG -o - $GPG_OPTS "$@"
+    $GPG -o - $GPG_OPTS --passphrase="$PASSPHRASE" "$@"
+}
+
+gpg_passphrase() {
+    [[ -z $PASSPHRASE ]] || return
+    read -r -p "Enter master password: " -s PASSPHRASE || exit 1
+    echo
 }
 
 archive_init() {
@@ -35,11 +41,13 @@ archive_init() {
     archive_lock
 }
 archive_lock() {
+    gpg_passphrase
     tar -czf - -C $WORKDIR . | gpg_encrypt -o $HOMEDIR/pass.tgz.gpg.1
     mv -f $HOMEDIR/pass.tgz.gpg{.1,}
     rm -rf $WORKDIR
 }
 archive_unlock() {
+    gpg_passphrase
     make_workdir
     cat $HOMEDIR/pass.tgz.gpg | gpg_decrypt | tar -xzf - -C $WORKDIR
 }
