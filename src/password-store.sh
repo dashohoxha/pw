@@ -248,7 +248,7 @@ cmd_show() {
         else
             echo "${path%\/}"
         fi
-        tree -C -l --noreport "$WORKDIR/$path" | tail -n +2 
+        tree -C -l --noreport "$WORKDIR/$path" | tail -n +2
     elif [[ -z $path ]]; then
         die "Error: password store is empty. Try \"pass init\"."
     else
@@ -260,22 +260,13 @@ cmd_find() {
     [[ -z "$@" ]] && die "Usage: $PROGRAM $COMMAND pass-names..."
     IFS="," eval 'echo "Search Terms: $*"'
     local terms="*$(printf '%s*|*' "$@")"
-    tree -C -l --noreport -P "${terms%|*}" --prune "$WORKDIR" | tail -n +2 
+    tree -C -l --noreport -P "${terms%|*}" --prune "$WORKDIR" | tail -n +2
 }
 
 cmd_grep() {
     [[ $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND search-string"
     local search="$1" passfile grepresults
-    while read -r -d "" passfile; do
-        grepresults="$(cat "$passfile" | grep --color=always "$search")"
-        [ $? -ne 0 ] && continue
-        passfile="${passfile#$WORKDIR/}"
-        local passfile_dir="${passfile%/*}/"
-        [[ $passfile_dir == "${passfile}/" ]] && passfile_dir=""
-        passfile="${passfile##*/}"
-        printf "\e[94m%s\e[1m%s\e[0m:\n" "$passfile_dir" "$passfile"
-        echo "$grepresults"
-    done < <(find -L "$WORKDIR" -type f -print0)
+    grep --color=always "$search" -r $WORKDIR | sed -e "s#$WORKDIR/##"
 }
 
 cmd_insert() {
