@@ -485,95 +485,95 @@ PROGRAM="${0##*/}"
 COMMAND="$1"
 
 run_cmd() {
-case "$1" in
-    init)
-        shift
-        cmd_init "$@"
-        ;;
+    case "$1" in
+        init)
+            shift
+            cmd_init "$@"
+            ;;
 
-    help|--help)
-        shift
-        cmd_usage "$@"
-        ;;
+        help|--help)
+            shift
+            cmd_usage "$@"
+            ;;
 
-    version|--version)
-        shift
-        cmd_version "$@"
-        ;;
+        version|--version)
+            shift
+            cmd_version "$@"
+            ;;
 
-    show|ls|list)
-        archive_unlock
-        shift
-        cmd_show "$@"
-        ;;
+        show|ls|list)
+            archive_unlock
+            shift
+            cmd_show "$@"
+            ;;
 
-    find|search)
-        archive_unlock
-        shift
-        cmd_find "$@"
-        ;;
+        find|search)
+            archive_unlock
+            shift
+            cmd_find "$@"
+            ;;
 
-    grep)
-        archive_unlock
-        shift
-        cmd_grep "$@"
-        ;;
+        grep)
+            archive_unlock
+            shift
+            cmd_grep "$@"
+            ;;
 
-    insert|add)
-        archive_unlock
-        shift
-        cmd_insert "$@"
-        archive_lock
-        ;;
+        insert|add)
+            archive_unlock
+            shift
+            cmd_insert "$@"
+            archive_lock
+            ;;
 
-    edit)
-        archive_unlock
-        shift
-        cmd_edit "$@"
-        archive_lock
-        ;;
+        edit)
+            archive_unlock
+            shift
+            cmd_edit "$@"
+            archive_lock
+            ;;
 
-    generate)
-        archive_unlock
-        shift
-        cmd_generate "$@"
-        archive_lock
-        ;;
+        generate)
+            archive_unlock
+            shift
+            cmd_generate "$@"
+            archive_lock
+            ;;
 
-    delete|rm|remove)
-        archive_unlock
-        shift
-        cmd_delete "$@"
-        archive_lock
-        ;;
+        delete|rm|remove)
+            archive_unlock
+            shift
+            cmd_delete "$@"
+            archive_lock
+            ;;
 
-    rename|mv)
-        archive_unlock
-        shift
-        cmd_copy_move "move" "$@"
-        archive_lock
-        ;;
+        rename|mv)
+            archive_unlock
+            shift
+            cmd_copy_move "move" "$@"
+            archive_lock
+            ;;
 
-    copy|cp)
-        archive_unlock
-        shift
-        cmd_copy_move "copy" "$@"
-        archive_lock
-        ;;
+        copy|cp)
+            archive_unlock
+            shift
+            cmd_copy_move "copy" "$@"
+            archive_lock
+            ;;
 
-    git)
-        archive_unlock
-        shift
-        cmd_git "$@"
-        archive_lock
-        ;;
+        git)
+            archive_unlock
+            shift
+            cmd_git "$@"
+            archive_lock
+            ;;
 
-    *)
-        archive_unlock
-        COMMAND="show";
-        cmd_show "$@"
-        ;;
-esac
+        *)
+            archive_unlock
+            COMMAND="show";
+            cmd_show "$@"
+            ;;
+    esac
 }
 
 run_cmd "$@"
