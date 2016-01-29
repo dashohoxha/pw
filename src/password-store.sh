@@ -480,7 +480,7 @@ cmd_git() {
 cmd_shell() {
     passphrase
     while true; do
-        read -p 'pass> ' command
+        read -e -p 'pass> ' command
         run_cmd $command
     done
 }
