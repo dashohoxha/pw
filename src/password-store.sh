@@ -6,9 +6,10 @@
 umask 077
 set -o pipefail
 
-HOMEDIR="${PASSWORD_STORE_DIR:-$HOME/.pass}"
+HOMEDIR="${PASSWORD_STORE_DIR:-$HOME/.pw}"
 X_SELECTION="${PASSWORD_STORE_X_SELECTION:-clipboard}"
 CLIP_TIME="${PASSWORD_STORE_CLIP_TIME:-45}"
+SCRIPT_PATH=$( cd $(dirname $0) ; pwd -P )
 
 #
 # BEGIN helper functions
@@ -29,7 +30,7 @@ decrypt() {
 
 passphrase() {
     [[ -z $PASSPHRASE ]] || return
-    read -r -p "Enter passphrase: " -s PASSPHRASE || exit 1
+    read -r -p "Passphrase: " -s PASSPHRASE || exit 1
     echo
 }
 
@@ -39,14 +40,15 @@ archive_init() {
 }
 archive_lock() {
     passphrase
-    tar -czf - -C $WORKDIR . | encrypt $HOMEDIR/pass.tgz.gpg.1
-    mv -f $HOMEDIR/pass.tgz.gpg{.1,}
+    tar -czf - -C $WORKDIR . | encrypt $HOMEDIR/pw.tgz.gpg.1
+    mv -f $HOMEDIR/pw.tgz.gpg{.1,}
     rm -rf $WORKDIR
 }
 archive_unlock() {
     passphrase
     make_workdir
-    cat $HOMEDIR/pass.tgz.gpg | decrypt | tar -xzf - -C $WORKDIR
+    cat $HOMEDIR/pw.tgz.gpg | decrypt | tar -xzf - -C $WORKDIR
+    cd $WORKDIR
 }
 
 git_add_file() {
@@ -56,10 +58,8 @@ git_add_file() {
     git_commit "$2"
 }
 git_commit() {
-    local sign=""
     [[ -d $GIT_DIR ]] || return
-    [[ $(git config --bool --get pass.signcommits) == "true" ]] && sign="-S"
-    git commit $sign -m "$1"
+    git commit -m "$1"
 }
 yesno() {
     [[ -t 0 ]] || return 0
@@ -478,9 +478,10 @@ cmd_git() {
 }
 
 cmd_shell() {
-    passphrase
+    run_cmd ls
     while true; do
-        read -e -p 'pass> ' command
+        #read -e -p 'pw > ' command
+        command=$(rlwrap -a -c -pGreen -S'pw > ' $SCRIPT_PATH/read.sh)
         run_cmd $command
     done
 }
