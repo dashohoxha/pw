@@ -9,7 +9,6 @@ set -o pipefail
 HOMEDIR="${PASSWORD_STORE_DIR:-$HOME/.pw}"
 X_SELECTION="${PASSWORD_STORE_X_SELECTION:-clipboard}"
 CLIP_TIME="${PASSWORD_STORE_CLIP_TIME:-45}"
-SCRIPT_PATH=$( cd $(dirname $0) ; pwd -P )
 
 #
 # BEGIN helper functions
@@ -480,8 +479,7 @@ cmd_git() {
 cmd_shell() {
     run_cmd ls
     while true; do
-        #read -e -p 'pw > ' command
-        command=$(rlwrap -a -c -pGreen -S'pw > ' $SCRIPT_PATH/read.sh)
+        read -e -p 'pw > ' command
         run_cmd $command
     done
 }
