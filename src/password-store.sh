@@ -477,6 +477,14 @@ cmd_git() {
     fi
 }
 
+cmd_shell() {
+    passphrase
+    while true; do
+        read -p 'pass> ' command
+        run_cmd $command
+    done
+}
+
 #
 # END subcommand functions
 #
@@ -486,6 +494,9 @@ COMMAND="$1"
 
 run_cmd() {
     case "$1" in
+        shell) shift; cmd_shell "$@";;
+        q|quit|exit) shift; exit 0;;
+
         init) shift
             cmd_init "$@"
             ;;
