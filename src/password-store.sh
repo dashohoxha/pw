@@ -221,31 +221,12 @@ cmd_init() {
     echo "Password store initialized."
 }
 
-cmd_show() {
-    local opts clip=0
-    opts="$($GETOPT -o c -l clip -n "$PROGRAM" -- "$@")"
-    local err=$?
-    eval set -- "$opts"
-    while true; do
-        case $1 in
-            -c|--clip) clip=1; shift ;;
-            --) shift; break ;;
-        esac
-    done
-
-    [[ $err -ne 0 ]] && die "Usage: $PROGRAM $COMMAND [--clip,-c] [pass-name]"
-
+cmd_list() {
     local path="$1"
     local passfile="$WORKDIR/$path"
     check_sneaky_paths "$path"
     if [[ -f $passfile ]]; then
-        if [[ $clip -eq 0 ]]; then
-            cat "$passfile" || exit $?
-        else
-            local pass="$(cat "$passfile" | head -n 1)"
-            [[ -n $pass ]] || exit 1
-            clip "$pass" "$path"
-        fi
+        cat "$passfile" || exit $?
     elif [[ -d $WORKDIR/$path ]]; then
         if [[ -z $path ]]; then
             echo "Password Store"
@@ -253,8 +234,32 @@ cmd_show() {
             echo "${path%\/}"
         fi
         tree -C -l --noreport "$WORKDIR/$path" | tail -n +2
-    elif [[ -z $path ]]; then
-        die "Error: password store is empty. Try \"pass init\"."
+    else
+        die "Error: $path is not in the password store."
+    fi
+}
+
+cmd_get() {
+    local path="$1"
+    local passfile="$WORKDIR/$path"
+    check_sneaky_paths "$path"
+    if [[ -f $passfile ]]; then
+        local pass="$(cat "$passfile" | head -n 1)"
+        [[ -n $pass ]] || exit 1
+        clip "$pass" "$path"
+    else
+        die "Error: $path is not in the password store."
+    fi
+}
+
+cmd_show() {
+    local path="$1"
+    local passfile="$WORKDIR/$path"
+    check_sneaky_paths "$path"
+    if [[ -f $passfile ]]; then
+        cat "$passfile" || exit $?
+    elif [[ -d $WORKDIR/$path ]]; then
+        cmd_list $path
     else
         die "Error: $path is not in the password store."
     fi
@@ -270,7 +275,7 @@ cmd_find() {
 cmd_grep() {
     [[ $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND search-string"
     local search="$1" passfile grepresults
-    grep --color=always "$search" -r $WORKDIR | sed -e "s#$WORKDIR/##"
+    grep --color=always "$search" --exclude-dir=.git --recursive $WORKDIR | sed -e "s#$WORKDIR/##"
 }
 
 cmd_insert() {
@@ -479,7 +484,7 @@ cmd_git() {
 cmd_shell() {
     run_cmd ls
     while true; do
-        read -e -p 'pw > ' command
+        read -e -p 'pw> ' command
         run_cmd $command
     done
 }
@@ -508,7 +513,13 @@ run_cmd() {
         version|--version)
             shift ; cmd_version "$@" ;;
 
-        show|ls|list)
+        ls|list)
+            shift ; archive_unlock ; cmd_list "$@" ;;
+
+        get)
+            shift ; archive_unlock ; cmd_get "$@" ;;
+
+        show)
             shift ; archive_unlock ; cmd_show "$@" ;;
 
         find|search)
@@ -538,8 +549,11 @@ run_cmd() {
         git)
             shift ; archive_unlock ; cmd_git "$@" ; archive_lock ;;
 
+        '')
+            COMMAND="shell" ; archive_unlock ; cmd_shell "$@" ;;
+
         *)
-            COMMAND="show" ; archive_unlock ; cmd_show "$@" ;;
+            COMMAND="get" ; archive_unlock ; cmd_get "$@" ;;
     esac
 }
 
