@@ -6,7 +6,7 @@
 umask 077
 set -o pipefail
 
-HOMEDIR="${PASSWORD_STORE_DIR:-$HOME/.pass}"
+HOMEDIR="${PASSWORD_STORE_DIR:-$HOME/.pw}"
 X_SELECTION="${PASSWORD_STORE_X_SELECTION:-clipboard}"
 CLIP_TIME="${PASSWORD_STORE_CLIP_TIME:-45}"
 
@@ -29,7 +29,7 @@ decrypt() {
 
 passphrase() {
     [[ -z $PASSPHRASE ]] || return
-    read -r -p "Enter passphrase: " -s PASSPHRASE || exit 1
+    read -r -p "Passphrase: " -s PASSPHRASE || exit 1
     echo
 }
 
@@ -39,14 +39,15 @@ archive_init() {
 }
 archive_lock() {
     passphrase
-    tar -czf - -C $WORKDIR . | encrypt $HOMEDIR/pass.tgz.gpg.1
-    mv -f $HOMEDIR/pass.tgz.gpg{.1,}
+    tar -czf - -C $WORKDIR . | encrypt $HOMEDIR/pw.tgz.gpg.1
+    mv -f $HOMEDIR/pw.tgz.gpg{.1,}
     rm -rf $WORKDIR
 }
 archive_unlock() {
     passphrase
     make_workdir
-    cat $HOMEDIR/pass.tgz.gpg | decrypt | tar -xzf - -C $WORKDIR
+    cat $HOMEDIR/pw.tgz.gpg | decrypt | tar -xzf - -C $WORKDIR
+    cd $WORKDIR
 }
 
 git_add_file() {
@@ -56,10 +57,8 @@ git_add_file() {
     git_commit "$2"
 }
 git_commit() {
-    local sign=""
     [[ -d $GIT_DIR ]] || return
-    [[ $(git config --bool --get pass.signcommits) == "true" ]] && sign="-S"
-    git commit $sign -m "$1"
+    git commit -m "$1"
 }
 yesno() {
     [[ -t 0 ]] || return 0
@@ -477,6 +476,14 @@ cmd_git() {
     fi
 }
 
+cmd_shell() {
+    run_cmd ls
+    while true; do
+        read -e -p 'pw > ' command
+        run_cmd $command
+    done
+}
+
 #
 # END subcommand functions
 #
@@ -484,95 +491,59 @@ cmd_git() {
 PROGRAM="${0##*/}"
 COMMAND="$1"
 
-case "$1" in
-    init)
-        shift
-        cmd_init "$@"
-        ;;
+run_cmd() {
+    case "$1" in
+        shell)
+            shift ; cmd_shell "$@" ;;
 
-    help|--help)
-        shift
-        cmd_usage "$@"
-        ;;
+        q|quit|exit)
+            shift ; exit 0 ;;
 
-    version|--version)
-        shift
-        cmd_version "$@"
-        ;;
+        init)
+            shift ; cmd_init "$@" ;;
 
-    show|ls|list)
-        archive_unlock
-        shift
-        cmd_show "$@"
-        ;;
+        help|--help)
+            shift ; cmd_usage "$@" ;;
 
-    find|search)
-        archive_unlock
-        shift
-        cmd_find "$@"
-        ;;
+        version|--version)
+            shift ; cmd_version "$@" ;;
 
-    grep)
-        archive_unlock
-        shift
-        cmd_grep "$@"
-        ;;
+        show|ls|list)
+            shift ; archive_unlock ; cmd_show "$@" ;;
 
-    insert|add)
-        archive_unlock
-        shift
-        cmd_insert "$@"
-        archive_lock
-        ;;
+        find|search)
+            shift ; archive_unlock ; cmd_find "$@" ;;
 
-    edit)
-        archive_unlock
-        shift
-        cmd_edit "$@"
-        archive_lock
-        ;;
+        grep)
+            shift ; archive_unlock ; cmd_grep "$@" ;;
 
-    generate)
-        archive_unlock
-        shift
-        cmd_generate "$@"
-        archive_lock
-        ;;
+        insert|add)
+            shift ; archive_unlock ; cmd_insert "$@" ; archive_lock ;;
 
-    delete|rm|remove)
-        archive_unlock
-        shift
-        cmd_delete "$@"
-        archive_lock
-        ;;
+        edit)
+            shift ; archive_unlock ; cmd_edit "$@" ; archive_lock ;;
 
-    rename|mv)
-        archive_unlock
-        shift
-        cmd_copy_move "move" "$@"
-        archive_lock
-        ;;
+        generate)
+            shift ; archive_unlock ; cmd_generate "$@" ; archive_lock ;;
 
-    copy|cp)
-        archive_unlock
-        shift
-        cmd_copy_move "copy" "$@"
-        archive_lock
-        ;;
+        delete|rm|remove)
+            shift ; archive_unlock ; cmd_delete "$@" ; archive_lock ;;
 
-    git)
-        archive_unlock
-        shift
-        cmd_git "$@"
-        archive_lock
-        ;;
+        rename|mv)
+            shift ; archive_unlock ; cmd_copy_move "move" "$@" ; archive_lock ;;
 
-    *)
-        archive_unlock
-        COMMAND="show";
-        cmd_show "$@"
-        ;;
-esac
+        copy|cp)
+            shift ; archive_unlock ; cmd_copy_move "copy" "$@" ; archive_lock ;;
+
+        git)
+            shift ; archive_unlock ; cmd_git "$@" ; archive_lock ;;
+
+        *)
+            COMMAND="show" ; archive_unlock ; cmd_show "$@" ;;
+    esac
+}
+
+run_cmd "$@"
 
 [[ -n $WORKDIR ]] && rm -rf $WORKDIR
 
