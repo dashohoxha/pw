@@ -7,6 +7,8 @@ umask 077
 set -o pipefail
 
 HOMEDIR="${PASSWORD_STORE_DIR:-$HOME/.pw}"
+ARCHIVE="$HOMEDIR/pw.tgz.gpg"
+
 X_SELECTION="${PASSWORD_STORE_X_SELECTION:-clipboard}"
 CLIP_TIME="${PASSWORD_STORE_CLIP_TIME:-45}"
 
@@ -39,14 +41,14 @@ archive_init() {
 }
 archive_lock() {
     passphrase
-    tar -czf - -C $WORKDIR . | encrypt $HOMEDIR/pw.tgz.gpg.1
-    mv -f $HOMEDIR/pw.tgz.gpg{.1,}
+    tar -czf - -C $WORKDIR . | encrypt $ARCHIVE.1
+    mv -f $ARCHIVE.1 $ARCHIVE
     rm -rf $WORKDIR
 }
 archive_unlock() {
     passphrase
     make_workdir
-    cat $HOMEDIR/pw.tgz.gpg | decrypt | tar -xzf - -C $WORKDIR
+    cat $ARCHIVE | decrypt | tar -xzf - -C $WORKDIR
     cd $WORKDIR
 }
 
