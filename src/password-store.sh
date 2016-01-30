@@ -92,7 +92,7 @@ clip() {
     local sleep_argv0="password store sleep on display $DISPLAY"
     pkill -f "^$sleep_argv0" 2>/dev/null && sleep 0.5
     local before="$(xclip -o -selection "$X_SELECTION" 2>/dev/null | base64)"
-    echo -n "$1" | xclip -selection "$X_SELECTION" || die "Error: Could not copy data to the clipboard"
+    echo -n "$1" | xclip -selection "$X_SELECTION" || echo "Error: Could not copy data to the clipboard" && return
     (
         ( exec -a "$sleep_argv0" sleep "$CLIP_TIME" )
         local now="$(xclip -o -selection "$X_SELECTION" | base64)"
@@ -157,61 +157,76 @@ source "$(dirname "$0")/platform/$(uname | cut -d _ -f 1 | tr '[:upper:]' '[:low
 
 cmd_version() {
     cat <<-_EOF
-        ============================================
-        = pass: the standard unix password manager =
-        =                                          =
-        =                  v1.6.5                  =
-        =                                          =
-        =             Jason A. Donenfeld           =
-        =               Jason@zx2c4.com            =
-        =                                          =
-        =      http://www.passwordstore.org/       =
-        ============================================
+        ====================================
+        = pw: a simple password manager    =
+        =                                  =
+        =               v0.9               =
+        =                                  =
+        = https://github.com/dashohoxha/pw =
+        ====================================
 _EOF
 }
 
-cmd_usage() {
-    cmd_version
-    echo
+cmd_help() {
     cat <<-_EOF
-        Usage:
-            $PROGRAM init
-                Initialize password storage.
-            $PROGRAM [ls] [subfolder]
-                List passwords.
-            $PROGRAM find pass-names...
-                List passwords that match pass-names.
-            $PROGRAM [show] [--clip,-c] pass-name
-                Show existing password and optionally put it on the clipboard.
-                If put on the clipboard, it will be cleared in $CLIP_TIME seconds.
-            $PROGRAM grep search-string
-                Search for password files containing search-string when decrypted.
-            $PROGRAM insert [--echo,-e | --multiline,-m] [--force,-f] pass-name
-                Insert new password. Optionally, echo the password back to the console
-                during entry. Or, optionally, the entry may be multiline. Prompt before
-                overwriting existing password unless forced.
-            $PROGRAM edit pass-name
-                Insert a new password or edit an existing password using ${EDITOR:-vi}.
-            $PROGRAM generate [--no-symbols,-n] [--clip,-c] [--in-place,-i | --force,-f] pass-name pass-length
-                Generate a new password of pass-length with optionally no symbols.
-                Optionally put it on the clipboard and clear board after $CLIP_TIME seconds.
-                Prompt before overwriting existing password unless forced.
-                Optionally replace only the first line of an existing file with a new password.
-            $PROGRAM rm [--recursive,-r] [--force,-f] pass-name
-                Remove existing password or directory, optionally forcefully.
-            $PROGRAM mv [--force,-f] old-path new-path
-                Renames or moves old-path to new-path, optionally forcefully.
-            $PROGRAM cp [--force,-f] old-path new-path
-                Copies old-path to new-path, optionally forcefully.
-            $PROGRAM git git-command-args...
-                If the password store is a git repository, execute a git command
-                specified by git-command-args.
-            $PROGRAM help
-                Show this text.
-            $PROGRAM version
-                Show version information.
 
-        More information may be found in the pass(1) man page.
+Usage: $PROGRAM command [options]
+
+Commands and their options are listed below.
+
+    ls [subfolder]
+        List password files.
+
+    show passfile
+        Print out the password contained in the given file.
+
+    passfile
+    get passfile
+        Copy to clipboard the password (it will be cleared in $CLIP_TIME seconds).
+
+    find passfile...
+        List passwords that match passfiles.
+
+    grep search-string
+        Search for password files containing search-string when decrypted.
+
+    set passfile [-e,--echo | -m,--multiline] [-f,--force]
+        Insert new password. Optionally, echo the password back to the console
+        during entry. Or, optionally, the entry may be multiline. Prompt before
+        overwriting existing password unless forced.
+
+    add passfile
+        Add a new password file using ${EDITOR:-vi}.
+
+    edit passfile
+        Edit an existing password file using ${EDITOR:-vi}.
+
+    gen passfile length [-n,--no-symbols] [-c,--clip] [-i,--in-place | -f,--force]
+        Generate a new password of given length with optionally no symbols.
+        Optionally put it on the clipboard and clear board after $CLIP_TIME seconds.
+        Prompt before overwriting existing password unless forced.
+        Optionally replace only the first line of an existing file with a new password.
+
+    rm [-r,--recursive] [-f,--force] passfile
+        Remove existing password file or directory, optionally forcefully.
+
+    mv [-f,--force] old-path new-path
+        Renames or moves old-path to new-path, optionally forcefully.
+
+    cp [-f,--force] old-path new-path
+        Copies old-path to new-path, optionally forcefully.
+
+    log
+        List the history of changes.
+
+    help
+        Show this help text.
+
+    version
+        Show version information.
+
+More information may be found in the pw(1) man page.
+
 _EOF
 }
 
@@ -235,7 +250,7 @@ cmd_list() {
         fi
         tree -C -l --noreport "$WORKDIR/$path" | tail -n +2
     else
-        die "Error: $path is not in the password store."
+        echo "Error: $path is not in the password store."
     fi
 }
 
@@ -248,7 +263,7 @@ cmd_get() {
         [[ -n $pass ]] || exit 1
         clip "$pass" "$path"
     else
-        die "Error: $path is not in the password store."
+        echo "Error: $path is not in the password store."
     fi
 }
 
@@ -261,19 +276,19 @@ cmd_show() {
     elif [[ -d $WORKDIR/$path ]]; then
         cmd_list $path
     else
-        die "Error: $path is not in the password store."
+        echo "Error: $path is not in the password store."
     fi
 }
 
 cmd_find() {
-    [[ -z "$@" ]] && die "Usage: $PROGRAM $COMMAND pass-names..."
+    [[ -z "$@" ]] && echo "Usage: $COMMAND passfiles..." && return
     IFS="," eval 'echo "Search Terms: $*"'
     local terms="*$(printf '%s*|*' "$@")"
     tree -C -l --noreport -P "${terms%|*}" --prune "$WORKDIR" | tail -n +2
 }
 
 cmd_grep() {
-    [[ $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND search-string"
+    [[ $# -ne 1 ]] && echo "Usage: $COMMAND search-string" && return
     local search="$1" passfile grepresults
     grep --color=always "$search" --exclude-dir=.git --recursive $WORKDIR | sed -e "s#$WORKDIR/##"
 }
@@ -292,7 +307,7 @@ cmd_insert() {
         esac
     done
 
-    [[ $err -ne 0 || ( $multiline -eq 1 && $noecho -eq 0 ) || $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND [--echo,-e | --multiline,-m] [--force,-f] pass-name"
+    [[ $err -ne 0 || ( $multiline -eq 1 && $noecho -eq 0 ) || $# -ne 1 ]] && echo "Usage: $COMMAND passfile [-e,--echo | -m,--multiline] [-f,--force]" && return
     local path="$1"
     local passfile="$WORKDIR/$path"
     check_sneaky_paths "$path"
@@ -328,7 +343,7 @@ cmd_insert() {
 }
 
 cmd_edit() {
-    [[ $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND pass-name"
+    [[ $# -ne 1 ]] && echo "Usage: $COMMAND passfile" && return
 
     local path="$1"
     check_sneaky_paths "$path"
@@ -358,11 +373,11 @@ cmd_generate() {
         esac
     done
 
-    [[ $err -ne 0 || $# -ne 2 || ( $force -eq 1 && $inplace -eq 1 ) ]] && die "Usage: $PROGRAM $COMMAND [--no-symbols,-n] [--clip,-c] [--in-place,-i | --force,-f] pass-name pass-length"
+    [[ $err -ne 0 || $# -ne 2 || ( $force -eq 1 && $inplace -eq 1 ) ]] && echo "Usage: $COMMAND passfile length [-n,--no-symbols] [-c,--clip] [-i,--in-place | -f,--force]" && return
     local path="$1"
     local length="$2"
     check_sneaky_paths "$path"
-    [[ ! $length =~ ^[0-9]+$ ]] && die "Error: pass-length \"$length\" must be a number."
+    [[ ! $length =~ ^[0-9]+$ ]] && echo "Error: pass-length \"$length\" must be a number." && return
     mkdir -p "$WORKDIR/$(dirname "$path")"
     local passfile="$WORKDIR/$path"
 
@@ -401,14 +416,14 @@ cmd_delete() {
             --) shift; break ;;
         esac
     done
-    [[ $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND [--recursive,-r] [--force,-f] pass-name"
+    [[ $# -ne 1 ]] && echo "Usage: $COMMAND passfile [-r,--recursive] [-f,--force]" && return
     local path="$1"
     check_sneaky_paths "$path"
 
     local passfile="$WORKDIR/${path%/}"
     if [[ ! -d $passfile ]]; then
         passfile="$WORKDIR/$path"
-        [[ ! -f $passfile ]] && die "Error: $path is not in the password store."
+        [[ ! -f $passfile ]] && echo "Error: $path is not in the password store." && return
     fi
 
     [[ $force -eq 1 ]] || yesno "Are you sure you would like to delete $path?"
@@ -434,7 +449,7 @@ cmd_copy_move() {
             --) shift; break ;;
         esac
     done
-    [[ $# -ne 2 ]] && die "Usage: $PROGRAM $COMMAND [--force,-f] old-path new-path"
+    [[ $# -ne 2 ]] && echo "Usage: $COMMAND old-path new-path [-f,--force]" && return
     check_sneaky_paths "$@"
     local old_path="$WORKDIR/${1%/}"
     local new_path="$WORKDIR/$2"
@@ -443,7 +458,7 @@ cmd_copy_move() {
     if [[ ! -d $old_path ]]; then
         old_dir="${old_path%/*}"
         old_path="${old_path}"
-        [[ ! -f $old_path ]] && die "Error: $1 is not in the password store."
+        [[ ! -f $old_path ]] && echo "Error: $1 is not in the password store." && return
     fi
 
     mkdir -p "${new_path%/*}"
@@ -477,16 +492,27 @@ cmd_git() {
         export TMPDIR="$WORKDIR"
         git "$@"
     else
-        die "Error: the password store is not a git repository. Try \"$PROGRAM git init\"."
+        echo "Error: the password store is not a git repository. Try \"$PROGRAM git init\"."
     fi
 }
 
 cmd_shell() {
-    run_cmd ls
+    list_commands
     while true; do
-        read -e -p 'pw> ' command
-        run_cmd $command
+        read -e -p 'pw> ' command options
+        COMMAND=$command
+        case "$command" in
+            q)   exit 0 ;;
+            '')  list_commands ;;
+            *)   run_cmd $command $options ;;
+        esac
     done
+}
+list_commands() {
+    cat <<-_EOF
+Commands: help ls get show set gen add edit find grep rm mv cp log
+Type q to quit.
+_EOF
 }
 
 #
@@ -494,23 +520,17 @@ cmd_shell() {
 #
 
 PROGRAM="${0##*/}"
-COMMAND="$1"
+COMMAND="$PROGRAM $1"
 
 run_cmd() {
     case "$1" in
-        shell)
-            shift ; cmd_shell "$@" ;;
-
-        q|quit|exit)
-            shift ; exit 0 ;;
-
         init)
             shift ; cmd_init "$@" ;;
 
-        help|--help)
-            shift ; cmd_usage "$@" ;;
+        help|-h|--help)
+            shift ; cmd_help "$@" ;;
 
-        version|--version)
+        v|-v|version|--version)
             shift ; cmd_version "$@" ;;
 
         ls|list)
@@ -528,29 +548,31 @@ run_cmd() {
         grep)
             shift ; archive_unlock ; cmd_grep "$@" ;;
 
-        insert|add)
+        set)
             shift ; archive_unlock ; cmd_insert "$@" ; archive_lock ;;
 
-        edit)
+        add|edit)
             shift ; archive_unlock ; cmd_edit "$@" ; archive_lock ;;
 
-        generate)
+        gen|generate)
             shift ; archive_unlock ; cmd_generate "$@" ; archive_lock ;;
 
-        delete|rm|remove)
+        del|delete|rm|remove)
             shift ; archive_unlock ; cmd_delete "$@" ; archive_lock ;;
 
-        rename|mv)
+        mv|rename)
             shift ; archive_unlock ; cmd_copy_move "move" "$@" ; archive_lock ;;
 
-        copy|cp)
+        cp|copy)
             shift ; archive_unlock ; cmd_copy_move "copy" "$@" ; archive_lock ;;
 
-        git)
-            shift ; archive_unlock ; cmd_git "$@" ; archive_lock ;;
+        log)
+            shift ; archive_unlock
+            cmd_git log --pretty=format:"%ar: %s"
+            archive_lock ;;
 
         '')
-            COMMAND="shell" ; archive_unlock ; cmd_shell "$@" ;;
+            COMMAND="shell" ; cmd_shell "$@" ;;
 
         *)
             COMMAND="get" ; archive_unlock ; cmd_get "$@" ;;
