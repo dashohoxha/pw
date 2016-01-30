@@ -44,6 +44,7 @@ archive_lock() {
     tar -czf - -C $WORKDIR . | encrypt $ARCHIVE.1
     mv -f $ARCHIVE.1 $ARCHIVE
     rm -rf $WORKDIR
+    unset WORKDIR
 }
 archive_unlock() {
     passphrase
@@ -115,7 +116,6 @@ clip() {
 }
 
 make_workdir() {
-    [[ -n $WORKDIR ]] && return
     local warn=1
     [[ $1 == "nowarn" ]] && warn=0
     local template="$PROGRAM.XXXXXXXXXXXXX"
@@ -126,14 +126,16 @@ make_workdir() {
         }
         trap remove_tmpfile INT TERM EXIT
     else
-        [[ $warn -eq 1 ]] && yesno "$(cat <<- _EOF
+        if [[ $warn -eq 1 ]]; then
+            yesno "$(cat <<- _EOF
 Your system does not have /dev/shm, which means that it may
 be difficult to entirely erase the temporary non-encrypted
 password file after editing.
 
 Are you sure you would like to continue?
 _EOF
-        )" || return
+                    )" || return
+        fi
         WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/$template")"
         shred_tmpfile() {
             find "$WORKDIR" -type f -exec $SHRED {} +
@@ -244,12 +246,11 @@ cmd_list() {
     if [[ -f "$WORKDIR/$path" ]]; then
         cat "$WORKDIR/$path" || return
     elif [[ -d "$WORKDIR/$path" ]]; then
-        echo "${path%\/}"
-        #if [[ -z $path ]]; then
-        #    echo "Password Store"
-        #else
-        #    echo "${path%\/}"
-        #fi
+        if [[ -z $path ]]; then
+            echo "Password Store"
+        else
+            echo "${path%\/}"
+        fi
         tree -C -l --noreport "$WORKDIR/$path" | tail -n +2
     else
         echo "Error: $path is not in the password store."
@@ -324,8 +325,9 @@ cmd_set() {
 
     local path="$1"
     check_sneaky_paths "$path"
-    [[ $force -eq 0 && -e "$WORKDIR/$path" ]] \
-        && yesno "An entry already exists for $path. Overwrite it?" || return
+    if [[ $force -eq 0 && -e "$WORKDIR/$path" ]]; then
+        yesno "An entry already exists for $path. Overwrite it?" || return
+    fi
     mkdir -p "$WORKDIR/$(dirname "$path")"
 
     if [[ $multiline -eq 1 ]]; then
@@ -401,8 +403,9 @@ cmd_generate() {
     mkdir -p "$WORKDIR/$(dirname "$path")"
     local passfile="$WORKDIR/$path"
 
-    [[ $inplace -eq 0 && $force -eq 0 && -e $passfile ]] \
-        && yesno "An entry already exists for $path. Overwrite it?" || return
+    if [[ $inplace -eq 0 && $force -eq 0 && -e $passfile ]]; then
+        yesno "An entry already exists for $path. Overwrite it?" || return
+    fi
 
     local pass="$(pwgen -s $symbols $length 1)"
     [[ -n $pass ]] || return
@@ -453,7 +456,9 @@ cmd_delete() {
         fi
     fi
 
-    [[ $force -eq 1 ]] || yesno "Are you sure you would like to delete $path?" || return
+    if [[ $force -ne 1 ]]; then
+        yesno "Are you sure you would like to delete $path?" || return
+    fi
 
     rm $recursive -f -v "$passfile"
     if [[ -d $GIT_DIR && ! -e $passfile ]]; then
@@ -566,6 +571,7 @@ run_cmd() {
     [[ -n $WORKDIR ]] && rm -rf $WORKDIR
 }
 run_shell() {
+    passphrase
     list_commands
     while true; do
         read -e -p 'pw> ' command options
