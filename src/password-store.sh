@@ -66,7 +66,7 @@ yesno() {
     [[ -t 0 ]] || return 0
     local response
     read -r -p "$1 [y/N] " response
-    [[ $response == [yY] ]] || exit 1
+    [[ $response == [yY] ]] || return 1
 }
 die() {
     echo "$@" >&2
@@ -133,7 +133,7 @@ password file after editing.
 
 Are you sure you would like to continue?
 _EOF
-        )"
+        )" || return
         WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/$template")"
         shred_tmpfile() {
             find "$WORKDIR" -type f -exec $SHRED {} +
@@ -325,7 +325,7 @@ cmd_set() {
     local path="$1"
     check_sneaky_paths "$path"
     [[ $force -eq 0 && -e "$WORKDIR/$path" ]] \
-        && yesno "An entry already exists for $path. Overwrite it?"
+        && yesno "An entry already exists for $path. Overwrite it?" || return
     mkdir -p "$WORKDIR/$(dirname "$path")"
 
     if [[ $multiline -eq 1 ]]; then
@@ -402,7 +402,7 @@ cmd_generate() {
     local passfile="$WORKDIR/$path"
 
     [[ $inplace -eq 0 && $force -eq 0 && -e $passfile ]] \
-        && yesno "An entry already exists for $path. Overwrite it?"
+        && yesno "An entry already exists for $path. Overwrite it?" || return
 
     local pass="$(pwgen -s $symbols $length 1)"
     [[ -n $pass ]] || return
@@ -453,7 +453,7 @@ cmd_delete() {
         fi
     fi
 
-    [[ $force -eq 1 ]] || yesno "Are you sure you would like to delete $path?"
+    [[ $force -eq 1 ]] || yesno "Are you sure you would like to delete $path?" || return
 
     rm $recursive -f -v "$passfile"
     if [[ -d $GIT_DIR && ! -e $passfile ]]; then
