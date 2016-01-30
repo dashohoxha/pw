@@ -75,7 +75,7 @@ die() {
 check_sneaky_paths() {
     local path
     for path in "$@"; do
-        [[ $path =~ /\.\.$ || $path =~ ^\.\./ || $path =~ /\.\./ || $path =~ ^\.\.$ ]] && die "Error: You've attempted to pass a sneaky path to pass. Go home."
+        [[ $path =~ /\.\.$ || $path =~ ^\.\./ || $path =~ /\.\./ || $path =~ ^\.\.$ ]] && die "Error: You've attempted to pass a sneaky path. Go home."
     done
 }
 
@@ -182,8 +182,7 @@ Commands and their options are listed below.
     show passfile
         Print out the password contained in the given file.
 
-    passfile
-    get passfile
+    [get] passfile
         Copy to clipboard the password (it will be cleared in $CLIP_TIME seconds).
 
     find passfile...
@@ -233,69 +232,78 @@ _EOF
 }
 
 cmd_init() {
-    mkdir -v -p $HOMEDIR
+    mkdir -p $HOMEDIR
     archive_init
-    echo "Password store initialized."
 }
 
 cmd_list() {
     local path="$1"
-    local passfile="$WORKDIR/$path"
     check_sneaky_paths "$path"
-    if [[ -f $passfile ]]; then
-        cat "$passfile" || exit $?
-    elif [[ -d $WORKDIR/$path ]]; then
-        if [[ -z $path ]]; then
-            echo "Password Store"
-        else
-            echo "${path%\/}"
-        fi
+
+    archive_unlock    # extract to $WORKDIR
+    if [[ -f "$WORKDIR/$path" ]]; then
+        cat "$WORKDIR/$path" || return
+    elif [[ -d "$WORKDIR/$path" ]]; then
+        echo "${path%\/}"
+        #if [[ -z $path ]]; then
+        #    echo "Password Store"
+        #else
+        #    echo "${path%\/}"
+        #fi
         tree -C -l --noreport "$WORKDIR/$path" | tail -n +2
     else
         echo "Error: $path is not in the password store."
     fi
+    rm -rf $WORKDIR   # cleanup
 }
 
 cmd_get() {
     local path="$1"
-    local passfile="$WORKDIR/$path"
     check_sneaky_paths "$path"
-    if [[ -f $passfile ]]; then
-        local pass="$(cat "$passfile" | head -n 1)"
-        [[ -n $pass ]] || exit 1
-        clip "$pass" "$path"
+
+    archive_unlock    # extract to $WORKDIR
+    if [[ -f "$WORKDIR/$path" ]]; then
+        local pass="$(cat "$WORKDIR/$path" | head -n 1)"
+        [[ -n $pass ]] && clip "$pass" "$path"
     else
         echo "Error: $path is not in the password store."
     fi
+    rm -rf $WORKDIR   # cleanup
 }
 
 cmd_show() {
     local path="$1"
-    local passfile="$WORKDIR/$path"
     check_sneaky_paths "$path"
-    if [[ -f $passfile ]]; then
-        cat "$passfile" || exit $?
-    elif [[ -d $WORKDIR/$path ]]; then
-        cmd_list $path
+
+    archive_unlock    # extract to $WORKDIR
+    if [[ -f "$WORKDIR/$path" ]]; then
+        cat "$WORKDIR/$path"
+    elif [[ -d "$WORKDIR/$path" ]]; then
+        cmd_list "$path"
     else
         echo "Error: $path is not in the password store."
     fi
+    rm -rf $WORKDIR   # cleanup
 }
 
 cmd_find() {
+    archive_unlock    # extract to $WORKDIR
     [[ -z "$@" ]] && echo "Usage: $COMMAND passfiles..." && return
     IFS="," eval 'echo "Search Terms: $*"'
     local terms="*$(printf '%s*|*' "$@")"
     tree -C -l --noreport -P "${terms%|*}" --prune "$WORKDIR" | tail -n +2
+    rm -rf $WORKDIR   # cleanup
 }
 
 cmd_grep() {
+    archive_unlock    # extract to $WORKDIR
     [[ $# -ne 1 ]] && echo "Usage: $COMMAND search-string" && return
     local search="$1" passfile grepresults
     grep --color=always "$search" --exclude-dir=.git --recursive $WORKDIR | sed -e "s#$WORKDIR/##"
+    rm -rf $WORKDIR   # cleanup
 }
 
-cmd_insert() {
+cmd_set() {
     local opts multiline=0 noecho=1 force=0
     opts="$($GETOPT -o mef -l multiline,echo,force -n "$PROGRAM" -- "$@")"
     local err=$?
@@ -308,29 +316,31 @@ cmd_insert() {
             --) shift; break ;;
         esac
     done
+    [[ $err -ne 0 || ( $multiline -eq 1 && $noecho -eq 0 ) || $# -ne 1 ]] \
+        && echo "Usage: $COMMAND passfile [-e,--echo | -m,--multiline] [-f,--force]" \
+        && return
 
-    [[ $err -ne 0 || ( $multiline -eq 1 && $noecho -eq 0 ) || $# -ne 1 ]] && echo "Usage: $COMMAND passfile [-e,--echo | -m,--multiline] [-f,--force]" && return
+    archive_unlock    # extract to $WORKDIR
+
     local path="$1"
-    local passfile="$WORKDIR/$path"
     check_sneaky_paths "$path"
-
-    [[ $force -eq 0 && -e $passfile ]] && yesno "An entry already exists for $path. Overwrite it?"
-
+    [[ $force -eq 0 && -e "$WORKDIR/$path" ]] \
+        && yesno "An entry already exists for $path. Overwrite it?"
     mkdir -p "$WORKDIR/$(dirname "$path")"
 
     if [[ $multiline -eq 1 ]]; then
         echo "Enter contents of $path and press Ctrl+D when finished:"
         echo
-        cat > "$passfile" || exit 1
+        cat > "$WORKDIR/$path" || return
     elif [[ $noecho -eq 1 ]]; then
         local password password_again
         while true; do
-            read -r -p "Enter password for $path: " -s password || exit 1
+            read -r -p "Enter password for $path: " -s password || return
             echo
-            read -r -p "Retype password for $path: " -s password_again || exit 1
+            read -r -p "Retype password for $path: " -s password_again || return
             echo
             if [[ $password == "$password_again" ]]; then
-                cat <<< "$password" > "$passfile"
+                cat <<< "$password" > "$WORKDIR/$path"
                 break
             else
                 echo "Error: the entered passwords do not match."
@@ -339,25 +349,26 @@ cmd_insert() {
     else
         local password
         read -r -p "Enter password for $path: " -e password
-        cat <<< "$password" > "$passfile"
+        cat <<< "$password" > "$WORKDIR/$path"
     fi
-    git_add_file "$passfile" "Add given password for $path to store."
+    git_add_file "$WORKDIR/$path" "Add given password for $path to store."
+
+    archive_lock      # cleanup $WORKDIR
 }
 
 cmd_edit() {
     [[ $# -ne 1 ]] && echo "Usage: $COMMAND passfile" && return
 
+    archive_unlock    # extract to $WORKDIR
+
     local path="$1"
     check_sneaky_paths "$path"
     mkdir -p "$WORKDIR/$(dirname "$path")"
-    local passfile="$WORKDIR/$path"
+    local action="Add" ; [[ -f "$WORKDIR/$path" ]] && action="Edit"
+    ${EDITOR:-vi} "$WORKDIR/$path"
+    git_add_file "$WORKDIR/$path" "$action password for $path using ${EDITOR:-vi}."
 
-    local action="Add"
-    [[ -f $passfile ]] && action="Edit"
-
-    ${EDITOR:-vi} "$passfile"
-    git_add_file "$passfile" "$action password for $path using ${EDITOR:-vi}."
-    rm -f $tmp_file
+    archive_lock      # cleanup $WORKDIR
 }
 
 cmd_generate() {
@@ -375,18 +386,26 @@ cmd_generate() {
         esac
     done
 
-    [[ $err -ne 0 || $# -ne 2 || ( $force -eq 1 && $inplace -eq 1 ) ]] && echo "Usage: $COMMAND passfile length [-n,--no-symbols] [-c,--clip] [-i,--in-place | -f,--force]" && return
+    [[ $err -ne 0 || $# -ne 2 || ( $force -eq 1 && $inplace -eq 1 ) ]] \
+        && echo "Usage: $COMMAND passfile length [-n,--no-symbols] [-c,--clip] [-i,--in-place | -f,--force]" \
+        && return
+
     local path="$1"
     local length="$2"
     check_sneaky_paths "$path"
-    [[ ! $length =~ ^[0-9]+$ ]] && echo "Error: pass-length \"$length\" must be a number." && return
+    [[ ! $length =~ ^[0-9]+$ ]] \
+        && echo "Error: pass-length \"$length\" must be a number." \
+        && return
+
+    archive_unlock    # extract to $WORKDIR
     mkdir -p "$WORKDIR/$(dirname "$path")"
     local passfile="$WORKDIR/$path"
 
-    [[ $inplace -eq 0 && $force -eq 0 && -e $passfile ]] && yesno "An entry already exists for $path. Overwrite it?"
+    [[ $inplace -eq 0 && $force -eq 0 && -e $passfile ]] \
+        && yesno "An entry already exists for $path. Overwrite it?"
 
     local pass="$(pwgen -s $symbols $length 1)"
-    [[ -n $pass ]] || exit 1
+    [[ -n $pass ]] || return
     if [[ $inplace -eq 0 ]]; then
         cat <<< "$pass" > "$passfile"
     else
@@ -395,9 +414,9 @@ cmd_generate() {
         mv "$passfile_temp" "$passfile"
         rm -f "$passfile_temp"
     fi
-    local verb="Add"
-    [[ $inplace -eq 1 ]] && verb="Replace"
+    local verb="Add" ; [[ $inplace -eq 1 ]] && verb="Replace"
     git_add_file "$passfile" "$verb generated password for ${path}."
+    archive_lock      # cleanup $WORKDIR
 
     if [[ $clip -eq 0 ]]; then
         printf "\e[1m\e[37mThe generated password for \e[4m%s\e[24m is:\e[0m\n\e[1m\e[93m%s\e[0m\n" "$path" "$pass"
@@ -422,10 +441,16 @@ cmd_delete() {
     local path="$1"
     check_sneaky_paths "$path"
 
+    archive_unlock    # extract to $WORKDIR
+
     local passfile="$WORKDIR/${path%/}"
     if [[ ! -d $passfile ]]; then
         passfile="$WORKDIR/$path"
-        [[ ! -f $passfile ]] && echo "Error: $path is not in the password store." && return
+        if [[ ! -f $passfile ]]; then
+            echo "Error: $path is not in the password store."
+            rm -rf $WORKDIR  # cleanup $WORKDIR
+            return
+        fi
     fi
 
     [[ $force -eq 1 ]] || yesno "Are you sure you would like to delete $path?"
@@ -436,6 +461,8 @@ cmd_delete() {
         git_commit "Remove $path from store."
     fi
     rmdir -p "${passfile%/*}" 2>/dev/null
+
+    archive_lock      # cleanup $WORKDIR
 }
 
 cmd_copy_move() {
@@ -453,6 +480,9 @@ cmd_copy_move() {
     done
     [[ $# -ne 2 ]] && echo "Usage: $COMMAND old-path new-path [-f,--force]" && return
     check_sneaky_paths "$@"
+
+    archive_unlock    # extract to $WORKDIR
+
     local old_path="$WORKDIR/${1%/}"
     local new_path="$WORKDIR/$2"
     local old_dir="$old_path"
@@ -470,7 +500,7 @@ cmd_copy_move() {
     [[ ! -t 0 || $force -eq 1 ]] && interactive="-f"
 
     if [[ $move -eq 1 ]]; then
-        mv $interactive -v "$old_path" "$new_path" || exit 1
+        mv $interactive -v "$old_path" "$new_path" || return
 
         if [[ -d $GIT_DIR && ! -e $old_path ]]; then
             git rm -qr "$old_path"
@@ -478,17 +508,20 @@ cmd_copy_move() {
         fi
         rmdir -p "$old_dir" 2>/dev/null
     else
-        cp $interactive -r -v "$old_path" "$new_path" || exit 1
+        cp $interactive -r -v "$old_path" "$new_path" || return
         git_add_file "$new_path" "Copy ${1} to ${2}."
     fi
+
+    archive_lock      # cleanup $WORKDIR
 }
 
 cmd_git() {
+    archive_unlock    # extract to $WORKDIR
     export GIT_DIR="$WORKDIR/.git"
     export GIT_WORK_TREE="$WORKDIR"
 
     if [[ $1 == "init" ]]; then
-        git "$@" || exit 1
+        git "$@" || return
         git_add_file "$WORKDIR" "Add current contents of password store."
     elif [[ -d $GIT_DIR ]]; then
         export TMPDIR="$WORKDIR"
@@ -496,9 +529,43 @@ cmd_git() {
     else
         echo "Error: the password store is not a git repository. Try \"$PROGRAM git init\"."
     fi
+    archive_lock      # cleanup $WORKDIR
 }
 
-cmd_shell() {
+#
+# END subcommand functions
+#
+
+run_cmd() {
+    local cmd="$1" ; shift
+
+    PROGRAM="${0##*/}"
+    COMMAND="$PROGRAM $cmd"
+
+    case "$cmd" in
+        '')                      run_shell ;;
+        help|-h|--help)          cmd_help "$@" ;;
+        v|-v|version|--version)  cmd_version "$@" ;;
+        init)                    cmd_init "$@" ;;
+        ls|list)                 cmd_list "$@" ;;
+        get)                     cmd_get "$@" ;;
+        show)                    cmd_show "$@" ;;
+        find|search)             cmd_find "$@" ;;
+        grep)                    cmd_grep "$@" ;;
+        set)                     cmd_set "$@" ;;
+        add|edit)                cmd_edit "$@" ;;
+        gen|generate)            cmd_generate "$@" ;;
+        del|delete|rm|remove)    cmd_delete "$@" ;;
+        mv|rename)               cmd_copy_move "move" "$@" ;;
+        cp|copy)                 cmd_copy_move "copy" "$@" ;;
+        log)                     cmd_git log --pretty=format:"%ar: %s" ;;
+        *)       COMMAND="get" ; cmd_get "$cmd" ;;
+    esac
+
+    # cleanup the temporary workdir, if it is still there
+    [[ -n $WORKDIR ]] && rm -rf $WORKDIR
+}
+run_shell() {
     list_commands
     while true; do
         read -e -p 'pw> ' command options
@@ -512,77 +579,18 @@ cmd_shell() {
 }
 list_commands() {
     cat <<-_EOF
-Commands: help ls get show set gen add edit find grep rm mv cp log
+Commands:
+    ls, get, show, set, gen, add, edit, find, grep, rm, mv, cp, log, help
 Type q to quit.
 _EOF
 }
 
-#
-# END subcommand functions
-#
 
-PROGRAM="${0##*/}"
-COMMAND="$PROGRAM $1"
+# init the homedir and archive, if they do not exist
+[[ -f $HOMEDIR ]] || mkdir -p $HOMEDIR
+[[ -f $ARCHIVE ]] || archive_init
 
-run_cmd() {
-    case "$1" in
-        init)
-            shift ; cmd_init "$@" ;;
-
-        help|-h|--help)
-            shift ; cmd_help "$@" ;;
-
-        v|-v|version|--version)
-            shift ; cmd_version "$@" ;;
-
-        ls|list)
-            shift ; archive_unlock ; cmd_list "$@" ;;
-
-        get)
-            shift ; archive_unlock ; cmd_get "$@" ;;
-
-        show)
-            shift ; archive_unlock ; cmd_show "$@" ;;
-
-        find|search)
-            shift ; archive_unlock ; cmd_find "$@" ;;
-
-        grep)
-            shift ; archive_unlock ; cmd_grep "$@" ;;
-
-        set)
-            shift ; archive_unlock ; cmd_insert "$@" ; archive_lock ;;
-
-        add|edit)
-            shift ; archive_unlock ; cmd_edit "$@" ; archive_lock ;;
-
-        gen|generate)
-            shift ; archive_unlock ; cmd_generate "$@" ; archive_lock ;;
-
-        del|delete|rm|remove)
-            shift ; archive_unlock ; cmd_delete "$@" ; archive_lock ;;
-
-        mv|rename)
-            shift ; archive_unlock ; cmd_copy_move "move" "$@" ; archive_lock ;;
-
-        cp|copy)
-            shift ; archive_unlock ; cmd_copy_move "copy" "$@" ; archive_lock ;;
-
-        log)
-            shift ; archive_unlock
-            cmd_git log --pretty=format:"%ar: %s"
-            archive_lock ;;
-
-        '')
-            COMMAND="shell" ; cmd_shell "$@" ;;
-
-        *)
-            COMMAND="get" ; archive_unlock ; cmd_get "$@" ;;
-    esac
-}
-
+# run the command
 run_cmd "$@"
-
-[[ -n $WORKDIR ]] && rm -rf $WORKDIR
 
 exit 0
