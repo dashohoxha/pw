@@ -109,7 +109,8 @@ clip() {
     local sleep_argv0="password store sleep on display $DISPLAY"
     pkill -f "^$sleep_argv0" 2>/dev/null && sleep 0.5
     local before="$(xclip -o -selection "$X_SELECTION" 2>/dev/null | base64)"
-    echo -n "$1" | xclip -selection "$X_SELECTION" || echo "Error: Could not copy data to the clipboard" && return
+    echo -n "$1" | xclip -selection "$X_SELECTION" \
+        || { echo "Error: Could not copy data to the clipboard"; return; }
     (
         ( exec -a "$sleep_argv0" sleep "$CLIP_TIME" )
         local now="$(xclip -o -selection "$X_SELECTION" | base64)"
@@ -126,7 +127,7 @@ clip() {
 
         echo "$before" | base64 -d | xclip -selection "$X_SELECTION"
     ) 2>/dev/null & disown
-    echo "Copied $2 to clipboard. Will clear in $CLIP_TIME seconds."
+    echo "Password of $2 sent to clipboard. Will clear in $CLIP_TIME seconds."
 }
 
 make_workdir() {
@@ -402,12 +403,12 @@ cmd_generate() {
         esac
     done
 
-    [[ $err -ne 0 || $# -ne 2 || ( $force -eq 1 && $inplace -eq 1 ) ]] \
+    [[ $err -ne 0 || $# -lt 1 || ( $force -eq 1 && $inplace -eq 1 ) ]] \
         && echo "Usage: $COMMAND passfile length [-n,--no-symbols] [-c,--clip] [-i,--in-place | -f,--force]" \
         && return
 
     local path="$1"
-    local length="$2"
+    local length="${2:-20}"
     check_sneaky_paths "$path"
     [[ ! $length =~ ^[0-9]+$ ]] \
         && echo "Error: pass-length \"$length\" must be a number." \
