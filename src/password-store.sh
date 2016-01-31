@@ -196,34 +196,32 @@ Commands and their options are listed below.
     ls [subfolder]
         List password files.
 
+    [get] passfile
+        Copy to clipboard the password (it will be cleared in $CLIP_TIME seconds).
+
     show passfile
         Print out the password contained in the given file.
 
-    [get] passfile
-        Copy to clipboard the password (it will be cleared in $CLIP_TIME seconds).
+    gen passfile [length] [-n,--no-symbols] [-i,--in-place | -f,--force]
+        Generate a new password with optionally no symbols.  Put it on
+        the clipboard and clear board after $CLIP_TIME seconds.
+        Prompt before overwriting existing password unless forced.
+        Optionally replace only the first line of an existing file
+        with a new password.
+
+    set passfile [-e,--echo | -m,--multiline] [-f,--force]
+        Insert new password. Optionally, echo the password back to the
+        console during entry. Or, optionally, the entry may be multiline.
+        Prompt before overwriting existing password unless forced.
+
+    edit passfile
+        Edit or add a password file using ${EDITOR:-vi}.
 
     find passfile...
         List passwords that match passfiles.
 
     grep search-string
         Search for password files containing search-string when decrypted.
-
-    set passfile [-e,--echo | -m,--multiline] [-f,--force]
-        Insert new password. Optionally, echo the password back to the console
-        during entry. Or, optionally, the entry may be multiline. Prompt before
-        overwriting existing password unless forced.
-
-    add passfile
-        Add a new password file using ${EDITOR:-vi}.
-
-    edit passfile
-        Edit an existing password file using ${EDITOR:-vi}.
-
-    gen passfile length [-n,--no-symbols] [-c,--clip] [-i,--in-place | -f,--force]
-        Generate a new password of given length with optionally no symbols.
-        Optionally put it on the clipboard and clear board after $CLIP_TIME seconds.
-        Prompt before overwriting existing password unless forced.
-        Optionally replace only the first line of an existing file with a new password.
 
     rm [-r,--recursive] [-f,--force] passfile
         Remove existing password file or directory, optionally forcefully.
@@ -389,14 +387,13 @@ cmd_edit() {
 }
 
 cmd_generate() {
-    local opts clip=0 force=0 symbols="-y" inplace=0
-    opts="$($GETOPT -o ncif -l no-symbols,clip,in-place,force -n "$PROGRAM" -- "$@")"
+    local opts force=0 symbols="-y" inplace=0
+    opts="$($GETOPT -o nif -l no-symbols,in-place,force -n "$PROGRAM" -- "$@")"
     local err=$?
     eval set -- "$opts"
     while true; do
         case $1 in
             -n|--no-symbols) symbols=""; shift ;;
-            -c|--clip) clip=1; shift ;;
             -f|--force) force=1; shift ;;
             -i|--in-place) inplace=1; shift ;;
             --) shift; break ;;
@@ -404,7 +401,7 @@ cmd_generate() {
     done
 
     [[ $err -ne 0 || $# -lt 1 || ( $force -eq 1 && $inplace -eq 1 ) ]] \
-        && echo "Usage: $COMMAND passfile length [-n,--no-symbols] [-c,--clip] [-i,--in-place | -f,--force]" \
+        && echo "Usage: $COMMAND passfile length [-n,--no-symbols] [-i,--in-place | -f,--force]" \
         && return
 
     local path="$1"
@@ -415,6 +412,7 @@ cmd_generate() {
         && return
 
     archive_unlock    # extract to $WORKDIR
+
     mkdir -p "$WORKDIR/$(dirname "$path")"
     local passfile="$WORKDIR/$path"
 
@@ -432,15 +430,12 @@ cmd_generate() {
         mv "$passfile_temp" "$passfile"
         rm -f "$passfile_temp"
     fi
+    clip "$pass" "$path"
+
     local verb="Add" ; [[ $inplace -eq 1 ]] && verb="Replace"
     git_add_file "$passfile" "$verb generated password for ${path}."
-    archive_lock      # cleanup $WORKDIR
 
-    if [[ $clip -eq 0 ]]; then
-        printf "\e[1m\e[37mThe generated password for \e[4m%s\e[24m is:\e[0m\n\e[1m\e[93m%s\e[0m\n" "$path" "$pass"
-    else
-        clip "$pass" "$path"
-    fi
+    archive_lock      # cleanup $WORKDIR
 }
 
 cmd_delete() {
@@ -574,7 +569,7 @@ run_cmd() {
         find|search)             cmd_find "$@" ;;
         grep)                    cmd_grep "$@" ;;
         set)                     cmd_set "$@" ;;
-        add|edit)                cmd_edit "$@" ;;
+        edit)                    cmd_edit "$@" ;;
         gen|generate)            cmd_generate "$@" ;;
         del|delete|rm|remove)    cmd_delete "$@" ;;
         mv|rename)               cmd_copy_move "move" "$@" ;;
@@ -604,7 +599,7 @@ run_shell() {
 list_commands() {
     cat <<-_EOF
 Commands:
-    ls, get, show, set, gen, add, edit, find, grep, rm, mv, cp, log, help
+    gen, set, ls, get, show, edit, find, grep, rm, mv, cp, log, help
 Type q to quit, p to change the passphrase.
 _EOF
 }
