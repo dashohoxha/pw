@@ -193,8 +193,8 @@ Usage: $PROGRAM command [options]
 
 Commands and their options are listed below.
 
-    ls [subfolder]
-        List password files.
+    ls [path] [-t,--tree]
+        List password files, optionally as a tree.
 
     [get] passfile
         Copy to clipboard the password (it will be cleared in $CLIP_TIME seconds).
@@ -217,8 +217,8 @@ Commands and their options are listed below.
     edit passfile
         Edit or add a password file using ${EDITOR:-vi}.
 
-    find passfile...
-        List passwords that match passfiles.
+    find pattern [-t,--tree]
+        List passfiles that match pattern, optionally in tree format.
 
     grep search-string
         Search for password files containing search-string when decrypted.
@@ -252,6 +252,18 @@ cmd_init() {
 }
 
 cmd_list() {
+    local opts tree=0
+    opts="$($GETOPT -o t -l tree -n "$PROGRAM" -- "$@")"
+    local err=$?
+    eval set -- "$opts"
+    while true; do
+        case $1 in
+            -t|--tree) tree=1; shift ;;
+            --) shift; break ;;
+        esac
+    done
+    [[ $err -ne 0 ]] && echo "Usage: $COMMAND [path] [-t,--tree]" && return
+
     local path="$1"
     check_sneaky_paths "$path"
 
@@ -259,12 +271,12 @@ cmd_list() {
     if [[ -f "$WORKDIR/$path" ]]; then
         cat "$WORKDIR/$path" || return
     elif [[ -d "$WORKDIR/$path" ]]; then
-        if [[ -z $path ]]; then
-            echo "Password Store"
+        if [[ $tree -eq 0 ]]; then
+            find "$WORKDIR/$path" -name '.git' -prune -or -type f | sed -e "s#$WORKDIR/##" -e '/\.git/d'
         else
-            echo "${path%\/}"
+            [[ -n $path ]] && echo "${path%\/}"
+            tree -C -l --noreport "$WORKDIR/$path" | tail -n +2
         fi
-        tree -C -l --noreport "$WORKDIR/$path" | tail -n +2
     else
         echo "Error: $path is not in the password store."
     fi
@@ -301,11 +313,28 @@ cmd_show() {
 }
 
 cmd_find() {
+    local opts tree=0
+    opts="$($GETOPT -o t -l tree -n "$PROGRAM" -- "$@")"
+    local err=$?
+    eval set -- "$opts"
+    while true; do
+        case $1 in
+            -t|--tree) tree=1; shift ;;
+            --) shift; break ;;
+        esac
+    done
+    [[ $err -ne 0 || $# -eq 0 ]] && echo "Usage: $COMMAND pattern [-t,--tree]" && return
+
     archive_unlock    # extract to $WORKDIR
-    [[ -z "$@" ]] && echo "Usage: $COMMAND passfiles..." && return
-    IFS="," eval 'echo "Search Terms: $*"'
-    local terms="*$(printf '%s*|*' "$@")"
-    tree -C -l --noreport -P "${terms%|*}" --prune "$WORKDIR" | tail -n +2
+    if [[ $tree -eq 0 ]]; then
+        pattern="*${1}*"
+        find $WORKDIR -name '.git' -prune -or \( -type f -and -name "$pattern" \) \
+            | sed -e "s#$WORKDIR/##" -e '/\.git/d'
+    else
+        IFS="," eval 'echo "Search Terms: $*"'
+        local terms="*$(printf '%s*|*' "$@")"
+        tree -C -l --noreport -P "${terms%|*}" --prune $WORKDIR | tail -n +2
+    fi
     rm -rf $WORKDIR   # cleanup
 }
 
