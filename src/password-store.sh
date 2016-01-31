@@ -38,6 +38,7 @@ passphrase() {
 archive_init() {
     make_workdir
     archive_lock
+    cmd_git init
 }
 archive_lock() {
     [[ -d $WORKDIR ]]  || return
@@ -55,21 +56,26 @@ archive_lock() {
 archive_unlock() {
     [[ -s $ARCHIVE ]] || return
 
-    passphrase
     make_workdir
+    [[ -d $WORKDIR ]]  || exit 1
+
+    export GIT_DIR="$WORKDIR/.git"
+    export GIT_WORK_TREE="$WORKDIR"
+
+    passphrase
     cat $ARCHIVE | decrypt | tar -xzf - -C $WORKDIR
     [[ $? -ne 0 ]] && exit 1
 }
 
 git_add_file() {
     [[ -d $GIT_DIR ]] || return
-    git add "$1" || return
+    git add "$1" >/dev/null || return
     [[ -n $(git status --porcelain "$1") ]] || return
     git_commit "$2"
 }
 git_commit() {
     [[ -d $GIT_DIR ]] || return
-    git commit -m "$1"
+    git commit -m "$1" >/dev/null
 }
 yesno() {
     [[ -t 0 ]] || return 0
@@ -361,7 +367,7 @@ cmd_set() {
         read -r -p "Enter password for $path: " -e password
         cat <<< "$password" > "$WORKDIR/$path"
     fi
-    git_add_file "$WORKDIR/$path" "Add given password for $path to store."
+    git_add_file "$WORKDIR/$path" "Add given password for $path."
 
     archive_lock      # cleanup $WORKDIR
 }
@@ -470,7 +476,7 @@ cmd_delete() {
 
     rm $recursive -f "$passfile"
     if [[ -d $GIT_DIR && ! -e $passfile ]]; then
-        git rm -qr "$passfile"
+        git rm -qr "$passfile" >/dev/null
         git_commit "Remove $path from store."
     fi
     rmdir -p "${passfile%/*}" 2>/dev/null
@@ -516,7 +522,7 @@ cmd_copy_move() {
         mv $interactive "$old_path" "$new_path" || return
 
         if [[ -d $GIT_DIR && ! -e $old_path ]]; then
-            git rm -qr "$old_path"
+            git rm -qr "$old_path" >/dev/null
             git_add_file "$new_path" "Rename ${1} to ${2}."
         fi
         rmdir -p "$old_dir" 2>/dev/null
@@ -530,19 +536,20 @@ cmd_copy_move() {
 
 cmd_git() {
     archive_unlock    # extract to $WORKDIR
-    export GIT_DIR="$WORKDIR/.git"
-    export GIT_WORK_TREE="$WORKDIR"
 
     if [[ $1 == "init" ]]; then
-        git "$@" || return
-        git_add_file "$WORKDIR" "Add current contents of password store."
+        git "$@" >/dev/null || return
+        git_add_file "$WORKDIR" "Initialization."
     elif [[ -d $GIT_DIR ]]; then
         export TMPDIR="$WORKDIR"
         git "$@"
     else
-        echo "Error: the password store is not a git repository. Try \"$PROGRAM git init\"."
+        echo "Error: the password store is not a git repository."
     fi
     archive_lock      # cleanup $WORKDIR
+}
+cmd_log() {
+    cmd_git log --pretty=format:"%ar: %s" --reverse "$@"
 }
 
 #
@@ -571,7 +578,7 @@ run_cmd() {
         del|delete|rm|remove)    cmd_delete "$@" ;;
         mv|rename)               cmd_copy_move "move" "$@" ;;
         cp|copy)                 cmd_copy_move "copy" "$@" ;;
-        log)                     cmd_git log --pretty=format:"%ar: %s" ;;
+        log)                     cmd_log "$@" ;;
         *)       COMMAND="get" ; cmd_get "$cmd" ;;
     esac
 
