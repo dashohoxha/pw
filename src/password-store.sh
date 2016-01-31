@@ -40,17 +40,25 @@ archive_init() {
     archive_lock
 }
 archive_lock() {
+    [[ -d $WORKDIR ]]  || return
+
     passphrase
     tar -czf - -C $WORKDIR . | encrypt $ARCHIVE.1
+    [[ $? -ne 0 ]] && exit 1
+
+    [[ -e $ARCHIVE.1 ]] || return
     mv -f $ARCHIVE.1 $ARCHIVE
+
     rm -rf $WORKDIR
     unset WORKDIR
 }
 archive_unlock() {
+    [[ -s $ARCHIVE ]] || return
+
     passphrase
     make_workdir
     cat $ARCHIVE | decrypt | tar -xzf - -C $WORKDIR
-    cd $WORKDIR
+    [[ $? -ne 0 ]] && exit 1
 }
 
 git_add_file() {
@@ -265,7 +273,7 @@ cmd_get() {
     archive_unlock    # extract to $WORKDIR
     if [[ -f "$WORKDIR/$path" ]]; then
         local pass="$(cat "$WORKDIR/$path" | head -n 1)"
-        [[ -n $pass ]] && clip "$pass" "$path"
+        [[ -n "$pass" ]] && clip "$pass" "$path"
     else
         echo "Error: $path is not in the password store."
     fi
@@ -460,7 +468,7 @@ cmd_delete() {
         yesno "Are you sure you would like to delete $path?" || return
     fi
 
-    rm $recursive -f -v "$passfile"
+    rm $recursive -f "$passfile"
     if [[ -d $GIT_DIR && ! -e $passfile ]]; then
         git rm -qr "$passfile"
         git_commit "Remove $path from store."
@@ -505,7 +513,7 @@ cmd_copy_move() {
     [[ ! -t 0 || $force -eq 1 ]] && interactive="-f"
 
     if [[ $move -eq 1 ]]; then
-        mv $interactive -v "$old_path" "$new_path" || return
+        mv $interactive "$old_path" "$new_path" || return
 
         if [[ -d $GIT_DIR && ! -e $old_path ]]; then
             git rm -qr "$old_path"
@@ -513,7 +521,7 @@ cmd_copy_move() {
         fi
         rmdir -p "$old_dir" 2>/dev/null
     else
-        cp $interactive -r -v "$old_path" "$new_path" || return
+        cp $interactive -r "$old_path" "$new_path" || return
         git_add_file "$new_path" "Copy ${1} to ${2}."
     fi
 
@@ -572,12 +580,14 @@ run_cmd() {
 }
 run_shell() {
     passphrase
+    cmd_list
     list_commands
     while true; do
         read -e -p 'pw> ' command options
         COMMAND=$command
         case "$command" in
             q)   exit 0 ;;
+            p)   unset PASSPHRASE ; passphrase ;;
             '')  list_commands ;;
             *)   run_cmd $command $options ;;
         esac
@@ -587,7 +597,7 @@ list_commands() {
     cat <<-_EOF
 Commands:
     ls, get, show, set, gen, add, edit, find, grep, rm, mv, cp, log, help
-Type q to quit.
+Type q to quit, p to change the passphrase.
 _EOF
 }
 
