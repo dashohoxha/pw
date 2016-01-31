@@ -583,10 +583,6 @@ cmd_log() {
 
 run_cmd() {
     local cmd="$1" ; shift
-
-    PROGRAM="${0##*/}"
-    COMMAND="$PROGRAM $cmd"
-
     case "$cmd" in
         '')                      run_shell ;;
         help|-h|--help)          cmd_help "$@" ;;
@@ -612,7 +608,6 @@ run_cmd() {
 }
 run_shell() {
     passphrase
-    cmd_list
     list_commands
     while true; do
         read -e -p 'pw> ' command options
@@ -637,6 +632,9 @@ _EOF
 # init the homedir and archive, if they do not exist
 [[ -f $HOMEDIR ]] || mkdir -p $HOMEDIR
 [[ -f $ARCHIVE ]] || archive_init
+
+PROGRAM="${0##*/}"
+COMMAND="$PROGRAM $1"
 
 # run the command
 run_cmd "$@"
