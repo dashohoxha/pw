@@ -44,7 +44,7 @@ archive_lock() {
     [[ -d $WORKDIR ]]  || return
 
     passphrase
-    tar -czf - -C $WORKDIR . | encrypt $ARCHIVE.1
+    tar -czf - -C $WORKDIR . | encrypt $ARCHIVE.1 >/dev/null 2>&1
     [[ $? -ne 0 ]] && exit 1
 
     [[ -e $ARCHIVE.1 ]] || return
@@ -63,7 +63,7 @@ archive_unlock() {
     export GIT_WORK_TREE="$WORKDIR"
 
     passphrase
-    cat $ARCHIVE | decrypt | tar -xzf - -C $WORKDIR
+    cat $ARCHIVE | decrypt | tar -xzf - -C $WORKDIR >/dev/null 2>&1
     [[ $? -ne 0 ]] && exit 1
 }
 
