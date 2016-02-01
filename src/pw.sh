@@ -12,6 +12,9 @@ ARCHIVE="$HOMEDIR/pw.tgz"
 X_SELECTION="${PASSWORD_STORE_X_SELECTION:-clipboard}"
 CLIP_TIME="${PASSWORD_STORE_CLIP_TIME:-45}"
 
+# Shell will time out after this many seconds of inactivity.
+TIMEOUT=300  # 5 min
+
 #
 # BEGIN helper functions
 #
@@ -608,6 +611,7 @@ run_cmd() {
 run_shell() {
     passphrase
     list_commands
+    timeout_start
     while true; do
         read -e -p 'pw> ' command options
         COMMAND=$command
@@ -617,6 +621,7 @@ run_shell() {
             '')  list_commands ;;
             *)   run_cmd $command $options ;;
         esac
+        timeout_start
     done
 }
 list_commands() {
@@ -626,7 +631,16 @@ Commands:
 Type q to quit, p to change the passphrase.
 _EOF
 }
-
+timeout_start() {
+    [[ -n $TIMEOUT_PID ]] && kill $TIMEOUT_PID
+    timeout_wait $$ &
+    TIMEOUT_PID=$!
+}
+timeout_wait() {
+    sleep $TIMEOUT
+    echo -e "\nTimeout"
+    kill -9 "$1"
+}
 
 # init the homedir and archive, if they do not exist
 [[ -f $HOMEDIR ]] || mkdir -p $HOMEDIR
