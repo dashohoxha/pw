@@ -196,34 +196,34 @@ Commands and their options are listed below.
     ls [path] [-t,--tree]
         List password files, optionally as a tree.
 
-    [get] passfile
+    [get] pwfile
         Copy to clipboard the password (it will be cleared in $CLIP_TIME seconds).
 
-    show passfile
+    show pwfile
         Print out the password contained in the given file.
 
-    gen passfile [length] [-n,--no-symbols] [-i,--in-place | -f,--force]
+    gen pwfile [length] [-n,--no-symbols] [-i,--in-place | -f,--force]
         Generate a new password with optionally no symbols.  Put it on
         the clipboard and clear board after $CLIP_TIME seconds.
         Prompt before overwriting existing password unless forced.
         Optionally replace only the first line of an existing file
         with a new password.
 
-    set passfile [-e,--echo | -m,--multiline] [-f,--force]
+    set pwfile [-e,--echo | -m,--multiline] [-f,--force]
         Insert new password. Optionally, echo the password back to the
         console during entry. Or, optionally, the entry may be multiline.
         Prompt before overwriting existing password unless forced.
 
-    edit passfile
+    edit pwfile
         Edit or add a password file using ${EDITOR:-vi}.
 
     find pattern [-t,--tree]
-        List passfiles that match pattern, optionally in tree format.
+        List pwfiles that match pattern, optionally in tree format.
 
     grep search-string
         Search for password files containing search-string when decrypted.
 
-    rm [-r,--recursive] [-f,--force] passfile
+    rm [-r,--recursive] [-f,--force] pwfile
         Remove existing password file or directory, optionally forcefully.
 
     mv [-f,--force] old-path new-path
@@ -341,7 +341,7 @@ cmd_find() {
 cmd_grep() {
     archive_unlock    # extract to $WORKDIR
     [[ $# -ne 1 ]] && echo "Usage: $COMMAND search-string" && return
-    local search="$1" passfile grepresults
+    local search="$1"
     grep --color=always "$search" --exclude-dir=.git --recursive $WORKDIR | sed -e "s#$WORKDIR/##"
     rm -rf $WORKDIR   # cleanup
 }
@@ -360,7 +360,7 @@ cmd_set() {
         esac
     done
     [[ $err -ne 0 || ( $multiline -eq 1 && $noecho -eq 0 ) || $# -ne 1 ]] \
-        && echo "Usage: $COMMAND passfile [-e,--echo | -m,--multiline] [-f,--force]" \
+        && echo "Usage: $COMMAND pwfile [-e,--echo | -m,--multiline] [-f,--force]" \
         && return
 
     archive_unlock    # extract to $WORKDIR
@@ -401,7 +401,7 @@ cmd_set() {
 }
 
 cmd_edit() {
-    [[ $# -ne 1 ]] && echo "Usage: $COMMAND passfile" && return
+    [[ $# -ne 1 ]] && echo "Usage: $COMMAND pwfile" && return
 
     archive_unlock    # extract to $WORKDIR
 
@@ -430,7 +430,7 @@ cmd_generate() {
     done
 
     [[ $err -ne 0 || $# -lt 1 || ( $force -eq 1 && $inplace -eq 1 ) ]] \
-        && echo "Usage: $COMMAND passfile length [-n,--no-symbols] [-i,--in-place | -f,--force]" \
+        && echo "Usage: $COMMAND pwfile length [-n,--no-symbols] [-i,--in-place | -f,--force]" \
         && return
 
     local path="$1"
@@ -443,26 +443,26 @@ cmd_generate() {
     archive_unlock    # extract to $WORKDIR
 
     mkdir -p "$WORKDIR/$(dirname "$path")"
-    local passfile="$WORKDIR/$path"
+    local pwfile="$WORKDIR/$path"
 
-    if [[ $inplace -eq 0 && $force -eq 0 && -e $passfile ]]; then
+    if [[ $inplace -eq 0 && $force -eq 0 && -e $pwfile ]]; then
         yesno "An entry already exists for $path. Overwrite it?" || return
     fi
 
     local pass="$(pwgen -s $symbols $length 1)"
     [[ -n $pass ]] || return
     if [[ $inplace -eq 0 ]]; then
-        cat <<< "$pass" > "$passfile"
+        cat <<< "$pass" > "$pwfile"
     else
-        local passfile_temp="${passfile}.tmp.${RANDOM}.${RANDOM}.${RANDOM}.${RANDOM}.--"
-        cat "$passfile" | sed $'1c \\\n'"$(sed 's/[\/&]/\\&/g' <<<"$pass")"$'\n' > "$passfile_temp"
-        mv "$passfile_temp" "$passfile"
-        rm -f "$passfile_temp"
+        local pwfile_temp="${pwfile}.tmp.${RANDOM}.${RANDOM}.${RANDOM}.${RANDOM}.--"
+        cat "$pwfile" | sed $'1c \\\n'"$(sed 's/[\/&]/\\&/g' <<<"$pass")"$'\n' > "$pwfile_temp"
+        mv "$pwfile_temp" "$pwfile"
+        rm -f "$pwfile_temp"
     fi
     clip "$pass" "$path"
 
     local verb="Add" ; [[ $inplace -eq 1 ]] && verb="Replace"
-    git_add_file "$passfile" "$verb generated password for ${path}."
+    git_add_file "$pwfile" "$verb generated password for ${path}."
 
     archive_lock      # cleanup $WORKDIR
 }
@@ -479,16 +479,16 @@ cmd_delete() {
             --) shift; break ;;
         esac
     done
-    [[ $# -ne 1 ]] && echo "Usage: $COMMAND passfile [-r,--recursive] [-f,--force]" && return
+    [[ $# -ne 1 ]] && echo "Usage: $COMMAND pwfile [-r,--recursive] [-f,--force]" && return
     local path="$1"
     check_sneaky_paths "$path"
 
     archive_unlock    # extract to $WORKDIR
 
-    local passfile="$WORKDIR/${path%/}"
-    if [[ ! -d $passfile ]]; then
-        passfile="$WORKDIR/$path"
-        if [[ ! -f $passfile ]]; then
+    local pwfile="$WORKDIR/${path%/}"
+    if [[ ! -d $pwfile ]]; then
+        pwfile="$WORKDIR/$path"
+        if [[ ! -f $pwfile ]]; then
             echo "Error: $path is not in the password store."
             rm -rf $WORKDIR  # cleanup $WORKDIR
             return
@@ -499,12 +499,12 @@ cmd_delete() {
         yesno "Are you sure you would like to delete $path?" || return
     fi
 
-    rm $recursive -f "$passfile"
-    if [[ -d $GIT_DIR && ! -e $passfile ]]; then
-        git rm -qr "$passfile" >/dev/null
+    rm $recursive -f "$pwfile"
+    if [[ -d $GIT_DIR && ! -e $pwfile ]]; then
+        git rm -qr "$pwfile" >/dev/null
         git_commit "Remove $path from store."
     fi
-    rmdir -p "${passfile%/*}" 2>/dev/null
+    rmdir -p "${pwfile%/*}" 2>/dev/null
 
     archive_lock      # cleanup $WORKDIR
 }
