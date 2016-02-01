@@ -12,7 +12,7 @@ clip() {
 		[[ $now != $(echo -n "$1" | base64) ]] && before="$now"
 		echo "$before" | base64 -d > /dev/clipboard
 	) 2>/dev/null & disown
-	echo "Copied $2 to clipboard. Will clear in $CLIP_TIME seconds."
+	echo "Password of $2 sent to clipboard. Will clear in $CLIP_TIME seconds."
 }
 
 # replaces Cygwin-style filenames with their Windows counterparts
