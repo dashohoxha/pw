@@ -7,7 +7,7 @@ umask 077
 set -o pipefail
 
 HOMEDIR="${PASSWORD_STORE_DIR:-$HOME/.pw}"
-ARCHIVE="$HOMEDIR/pw.tgz.gpg"
+ARCHIVE="$HOMEDIR/pw.tgz"
 
 X_SELECTION="${PASSWORD_STORE_X_SELECTION:-clipboard}"
 CLIP_TIME="${PASSWORD_STORE_CLIP_TIME:-45}"
@@ -16,17 +16,18 @@ CLIP_TIME="${PASSWORD_STORE_CLIP_TIME:-45}"
 # BEGIN helper functions
 #
 
-GPG="gpg"
-which gpg2 &>/dev/null && GPG="gpg2"
+GPG="gpg" ; which gpg2 &>/dev/null && GPG="gpg2"
 
 encrypt() {
-    $GPG -o $1 --symmetric --passphrase="$PASSPHRASE" \
-         --quiet --yes --batch \
-         --compress-algo=none --cipher-algo=AES256
+    local archive=$1
+    $GPG --symmetric --quiet --yes --batch \
+        --compress-algo=none --cipher-algo=AES256 \
+        --passphrase-fd 0 $archive <<< "$PASSPHRASE"
 }
 decrypt() {
-    $GPG -o - --passphrase="$PASSPHRASE" \
-         --quiet --yes --batch
+    local archive_gpg=$1
+    $GPG --quiet --yes --batch \
+        --passphrase-fd 0 $archive_gpg <<< "$PASSPHRASE"
 }
 
 passphrase() {
@@ -44,27 +45,25 @@ archive_lock() {
     [[ -d $WORKDIR ]]  || return
 
     passphrase
-    tar -czf - -C $WORKDIR . | encrypt $ARCHIVE.1 >/dev/null 2>&1
-    [[ $? -ne 0 ]] && exit 1
+    tar -czf $ARCHIVE -C $WORKDIR . >/dev/null 2>&1
+    encrypt $ARCHIVE
 
-    [[ -e $ARCHIVE.1 ]] || return
-    mv -f $ARCHIVE.1 $ARCHIVE
-
-    rm -rf $WORKDIR
+    rm -rf $WORKDIR $ARCHIVE
     unset WORKDIR
 }
 archive_unlock() {
-    [[ -s $ARCHIVE ]] || return
+    [[ -s $ARCHIVE.gpg ]] || return
 
     make_workdir
     [[ -d $WORKDIR ]]  || exit 1
-
     export GIT_DIR="$WORKDIR/.git"
     export GIT_WORK_TREE="$WORKDIR"
 
     passphrase
-    cat $ARCHIVE | decrypt | tar -xzf - -C $WORKDIR >/dev/null 2>&1
+    decrypt $ARCHIVE.gpg
     [[ $? -ne 0 ]] && exit 1
+    tar -xzf $ARCHIVE -C $WORKDIR >/dev/null 2>&1
+    rm -f $ARCHIVE
 }
 
 git_add_file() {
@@ -631,7 +630,7 @@ _EOF
 
 # init the homedir and archive, if they do not exist
 [[ -f $HOMEDIR ]] || mkdir -p $HOMEDIR
-[[ -f $ARCHIVE ]] || archive_init
+[[ -f $ARCHIVE.gpg ]] || archive_init
 
 PROGRAM="${0##*/}"
 COMMAND="$PROGRAM $1"
