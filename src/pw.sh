@@ -26,11 +26,29 @@ decrypt() {
 
 passphrase() {
     [[ -z $PASSPHRASE ]] || return
-    read -r -p "Passphrase: " -s PASSPHRASE || exit 1
+    read -r -p "Passphrase for archive '$ARCHIVE': " -s PASSPHRASE || exit 1
     echo
+}
+passphrase_new() {
+    local passphrase passphrase_again
+    while true; do
+        read -r -p "Enter new passphrase for archive '$ARCHIVE': " -s passphrase || return
+        echo
+        read -r -p "Retype the passphrase for archive '$ARCHIVE': " -s passphrase_again || return
+        echo
+        if [[ $passphrase == "$passphrase_again" ]]; then
+            PASSPHRASE="$passphrase"
+            break
+        else
+            echo "Error: the entered passphrases do not match."
+        fi
+    done
 }
 
 archive_init() {
+    echo "Creating a new archive '$ARCHIVE'."
+    passphrase_new
+    mkdir -p $PW_DIR
     make_workdir
     archive_lock
     cmd_git init
@@ -237,11 +255,6 @@ Commands and their options are listed below.
 More information may be found in the pw(1) man page.
 
 _EOF
-}
-
-cmd_init() {
-    mkdir -p $PW_DIR
-    archive_init
 }
 
 cmd_list() {
@@ -570,6 +583,12 @@ cmd_log() {
     cmd_git log --pretty=format:"%ar: %s" --reverse "$@"
 }
 
+cmd_change_passphrase() {
+    archive_unlock
+    passphrase_new
+    archive_lock
+}
+
 #
 # END subcommand functions
 #
@@ -580,7 +599,6 @@ run_cmd() {
         '')                      run_shell ;;
         help|-h|--help)          cmd_help "$@" ;;
         v|-v|version|--version)  cmd_version "$@" ;;
-        init)                    cmd_init "$@" ;;
         ls|list)                 cmd_list "$@" ;;
         get)                     cmd_get "$@" ;;
         show)                    cmd_show "$@" ;;
@@ -593,6 +611,7 @@ run_cmd() {
         mv|rename)               cmd_copy_move "move" "$@" ;;
         cp|copy)                 cmd_copy_move "copy" "$@" ;;
         log)                     cmd_log "$@" ;;
+        passphrase)              cmd_change_passphrase "$@" ;;
         *)       COMMAND="get" ; cmd_get "$cmd" ;;
     esac
 
@@ -608,7 +627,7 @@ run_shell() {
         COMMAND=$command
         case "$command" in
             q)   return ;;
-            p)   unset PASSPHRASE ; passphrase ;;
+            p)   cmd_change_passphrase ;;
             '')  list_commands ;;
             *)   run_cmd $command $options ;;
         esac
@@ -658,6 +677,7 @@ _EOF
     CLIP_TIME="${CLIP_TIME:-45}"
     TIMEOUT=${TIMEOUT:-300}  # default 5 min
 }
+
 main() {
     PW_DIR="${PW_DIR:-$HOME/.pw}"
     [[ -d $PW_DIR ]] || mkdir -p $PW_DIR
