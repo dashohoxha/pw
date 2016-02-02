@@ -6,16 +6,6 @@
 umask 077
 set -o pipefail
 
-PW_DIR="${PW_DIR:-$HOME/.pw}"
-
-ARCHIVE=${ARCHIVE:-pw}
-
-X_SELECTION="${X_SELECTION:-clipboard}"
-CLIP_TIME="${CLIP_TIME:-45}"
-
-# Shell will time out after this many seconds of inactivity.
-TIMEOUT=${TIMEOUT:-300}  # default 5 min
-
 #
 # BEGIN helper functions
 #
@@ -433,7 +423,7 @@ cmd_generate() {
     done
 
     [[ $err -ne 0 || $# -lt 1 || ( $force -eq 1 && $inplace -eq 1 ) ]] \
-        && echo "Usage: $COMMAND pwfile length [-n,--no-symbols] [-i,--in-place | -f,--force]" \
+        && echo "Usage: $COMMAND pwfile [length] [-n,--no-symbols] [-i,--in-place | -f,--force]" \
         && return
 
     local path="$1"
@@ -646,8 +636,32 @@ timeout_clear() {
     [[ -n $TIMEOUT_PID ]] && kill $TIMEOUT_PID
 }
 
+config() {
+    # read the config file
+    local config_file="$PW_DIR/config.sh"
+    [[ -f $config_file ]] || cat <<-_EOF > $config_file
+# Default archive, if no -a option is given.
+ARCHIVE=pw
+
+# Clipboard related.
+X_SELECTION=clipboard
+CLIP_TIME=45
+
+# Shell will time out after this many seconds of inactivity.
+TIMEOUT=300  # 5 min
+_EOF
+    source $config_file
+
+    # set defaults, if some configurations are missing
+    ARCHIVE=${ARCHIVE:-pw}
+    X_SELECTION="${X_SELECTION:-clipboard}"
+    CLIP_TIME="${CLIP_TIME:-45}"
+    TIMEOUT=${TIMEOUT:-300}  # default 5 min
+}
 main() {
+    PW_DIR="${PW_DIR:-$HOME/.pw}"
     [[ -d $PW_DIR ]] || mkdir -p $PW_DIR
+    config
 
     PROGRAM="${0##*/}"
 
