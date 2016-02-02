@@ -6,14 +6,15 @@
 umask 077
 set -o pipefail
 
-HOMEDIR="${PASSWORD_STORE_DIR:-$HOME/.pw}"
+PW_DIR="${PW_DIR:-$HOME/.pw}"
+
 ARCHIVE=${ARCHIVE:-pw}
 
-X_SELECTION="${PASSWORD_STORE_X_SELECTION:-clipboard}"
-CLIP_TIME="${PASSWORD_STORE_CLIP_TIME:-45}"
+X_SELECTION="${X_SELECTION:-clipboard}"
+CLIP_TIME="${CLIP_TIME:-45}"
 
 # Shell will time out after this many seconds of inactivity.
-TIMEOUT=300  # 5 min
+TIMEOUT=${TIMEOUT:-300}  # default 5 min
 
 #
 # BEGIN helper functions
@@ -249,7 +250,7 @@ _EOF
 }
 
 cmd_init() {
-    mkdir -p $HOMEDIR
+    mkdir -p $PW_DIR
     archive_init
 }
 
@@ -639,14 +640,14 @@ timeout_start() {
 timeout_wait() {
     sleep $TIMEOUT
     echo -e "\nTimeout"
-    kill -9 "$1"
+    kill -9 "$1" >/dev/null 2>&1
 }
 timeout_clear() {
     [[ -n $TIMEOUT_PID ]] && kill $TIMEOUT_PID
 }
 
 main() {
-    [[ -f $HOMEDIR ]] || mkdir -p $HOMEDIR
+    [[ -d $PW_DIR ]] || mkdir -p $PW_DIR
 
     PROGRAM="${0##*/}"
 
@@ -656,7 +657,7 @@ main() {
         ARCHIVE=$2
         shift 2
     fi
-    ARCHIVE="$HOMEDIR/$ARCHIVE.tgz"
+    ARCHIVE="$PW_DIR/$ARCHIVE.tgz"
     [[ -f $ARCHIVE.gpg ]] || archive_init
 
     COMMAND="$PROGRAM $1"
