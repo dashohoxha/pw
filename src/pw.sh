@@ -616,7 +616,7 @@ run_shell() {
         read -e -p 'pw> ' command options
         COMMAND=$command
         case "$command" in
-            q)   exit 0 ;;
+            q)   return ;;
             p)   unset PASSPHRASE ; passphrase ;;
             '')  list_commands ;;
             *)   run_cmd $command $options ;;
@@ -632,7 +632,7 @@ Type q to quit, p to change the passphrase.
 _EOF
 }
 timeout_start() {
-    [[ -n $TIMEOUT_PID ]] && kill $TIMEOUT_PID
+    timeout_clear
     timeout_wait $$ &
     TIMEOUT_PID=$!
 }
@@ -640,6 +640,9 @@ timeout_wait() {
     sleep $TIMEOUT
     echo -e "\nTimeout"
     kill -9 "$1"
+}
+timeout_clear() {
+    [[ -n $TIMEOUT_PID ]] && kill $TIMEOUT_PID
 }
 
 main() {
@@ -658,6 +661,8 @@ main() {
 
     COMMAND="$PROGRAM $1"
     run_cmd "$@"
+
+    timeout_clear
     exit 0
 }
 
