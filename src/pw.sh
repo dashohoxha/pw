@@ -7,7 +7,7 @@ umask 077
 set -o pipefail
 
 HOMEDIR="${PASSWORD_STORE_DIR:-$HOME/.pw}"
-ARCHIVE="$HOMEDIR/pw.tgz"
+ARCHIVE=${ARCHIVE:-pw}
 
 X_SELECTION="${PASSWORD_STORE_X_SELECTION:-clipboard}"
 CLIP_TIME="${PASSWORD_STORE_CLIP_TIME:-45}"
@@ -191,7 +191,7 @@ _EOF
 cmd_help() {
     cat <<-_EOF
 
-Usage: $PROGRAM command [options]
+Usage: $PROGRAM [-a <archive>] [<command> <options>]
 
 Commands and their options are listed below.
 
@@ -234,8 +234,8 @@ Commands and their options are listed below.
     cp [-f,--force] old-path new-path
         Copies old-path to new-path, optionally forcefully.
 
-    log
-        List the history of changes.
+    log [-10]
+        List the history of (last 10) changes.
 
     help
         Show this help text.
@@ -642,14 +642,23 @@ timeout_wait() {
     kill -9 "$1"
 }
 
-# init the homedir and archive, if they do not exist
-[[ -f $HOMEDIR ]] || mkdir -p $HOMEDIR
-[[ -f $ARCHIVE.gpg ]] || archive_init
+main() {
+    [[ -f $HOMEDIR ]] || mkdir -p $HOMEDIR
 
-PROGRAM="${0##*/}"
-COMMAND="$PROGRAM $1"
+    PROGRAM="${0##*/}"
 
-# run the command
-run_cmd "$@"
+    # get the archive
+    if [[ $1 == '-a' ]]; then
+        [[ -z $2 ]] && echo "Usage: $PROGRAM [-a <archive>] [<command> <options>]" && exit 1
+        ARCHIVE=$2
+        shift 2
+    fi
+    ARCHIVE="$HOMEDIR/$ARCHIVE.tgz"
+    [[ -f $ARCHIVE.gpg ]] || archive_init
 
-exit 0
+    COMMAND="$PROGRAM $1"
+    run_cmd "$@"
+    exit 0
+}
+
+main "$@"
