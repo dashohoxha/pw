@@ -14,22 +14,34 @@ GPG="gpg" ; which gpg2 &>/dev/null && GPG="gpg2"
 
 encrypt() {
     local archive=$1
-    $GPG --symmetric --quiet --yes --batch \
-        --compress-algo=none --cipher-algo=AES256 \
-        --passphrase-fd 0 $archive <<< "$PASSPHRASE"
+    local opts="--quiet --yes --batch --compress-algo=none $GPG_OPTS"
+    if [[ -z $GPG_KEYS ]]; then
+        $GPG --symmetric $opts --cipher-algo=AES256 \
+            --passphrase-fd 0 $archive <<< "$PASSPHRASE"
+    else
+        local recipients=''
+        for key in $GPG_KEYS; do recipients="$recipients -r $key"; done
+        $GPG --encrypt $opts --use-agent --no-encrypt-to \
+            $recipients $archive
+    fi
 }
 decrypt() {
-    local archive_gpg=$1
-    $GPG --quiet --yes --batch \
-        --passphrase-fd 0 $archive_gpg <<< "$PASSPHRASE"
+    local archive=$1
+    local opts="--quiet --yes --batch $GPG_OPTS"
+    if [[ -z $GPG_KEYS ]]; then
+        $GPG $opts --passphrase-fd 0 $archive.gpg <<< "$PASSPHRASE"
+    else
+        $GPG --decrypt $opts --use-agent --output=$archive $archive.gpg
+    fi
 }
 
-passphrase() {
+get_passphrase() {
+    [[ -z $GPG_KEYS ]] || return
     [[ -z $PASSPHRASE ]] || return
     read -r -p "Passphrase for archive '$ARCHIVE': " -s PASSPHRASE || exit 1
     echo
 }
-passphrase_new() {
+new_passphrase() {
     local passphrase passphrase_again
     while true; do
         read -r -p "Enter new passphrase for archive '$ARCHIVE': " -s passphrase || return
@@ -47,7 +59,7 @@ passphrase_new() {
 
 archive_init() {
     echo "Creating a new archive '$ARCHIVE'."
-    passphrase_new
+    new_passphrase
     mkdir -p $PW_DIR
     make_workdir
     archive_lock
@@ -56,12 +68,15 @@ archive_init() {
 archive_lock() {
     [[ -d $WORKDIR ]]  || return
 
-    passphrase
+    get_passphrase
     tar -czf $ARCHIVE -C $WORKDIR . >/dev/null 2>&1
     encrypt $ARCHIVE
+    local err=$?
 
     rm -rf $WORKDIR $ARCHIVE
     unset WORKDIR
+
+    [[ $err -ne 0 ]] && exit $err
 }
 archive_unlock() {
     [[ -s $ARCHIVE.gpg ]] || return
@@ -71,9 +86,10 @@ archive_unlock() {
     export GIT_DIR="$WORKDIR/.git"
     export GIT_WORK_TREE="$WORKDIR"
 
-    passphrase
-    decrypt $ARCHIVE.gpg
-    [[ $? -ne 0 ]] && exit 1
+    get_passphrase
+    decrypt $ARCHIVE
+    local err=$?
+    [[ $err -ne 0 ]] && exit $err
     tar -xzf $ARCHIVE -C $WORKDIR >/dev/null 2>&1
     rm -f $ARCHIVE
 }
@@ -245,6 +261,15 @@ Commands and their options are listed below.
 
     log [-10]
         List the history of (last 10) changes.
+
+    pass,set-passphrase
+        Set the passphrase of the archive (gpg symmetric encryption).
+
+    keys,set-keys [gpg-key]...
+        Set the gpg key(s) of the archive (asymmetric encryption).
+        Note: Symmetric and asymmetric encryption are exclusive; either
+        you use a passphrase (for symmetric encryption), or gpg key(s)
+        (for asymmetric encryption).
 
     help
         Show this help text.
@@ -583,10 +608,21 @@ cmd_log() {
     cmd_git log --pretty=format:"%ar: %s" --reverse "$@"
 }
 
-cmd_change_passphrase() {
-    archive_unlock
-    passphrase_new
+cmd_set_passphrase() {
+    archive_unlock || return
+    new_passphrase
+    unset GPG_KEYS
     archive_lock
+    rm -f $ARCHIVE.gpg.keys
+}
+
+cmd_set_gpg_keys() {
+    archive_unlock || return
+    GPG_KEYS="$@"
+    [[ -z $GPG_KEYS ]] && $GPG --gen-key
+    unset PASSPHRASE
+    archive_lock
+    cat <<<"GPG_KEYS=\"$GPG_KEYS\"" > $ARCHIVE.gpg.keys
 }
 
 #
@@ -611,7 +647,8 @@ run_cmd() {
         mv|rename)               cmd_copy_move "move" "$@" ;;
         cp|copy)                 cmd_copy_move "copy" "$@" ;;
         log)                     cmd_log "$@" ;;
-        passphrase)              cmd_change_passphrase "$@" ;;
+        pass|set-passphrase)     cmd_set_passphrase "$@" ;;
+        keys|set-keys)           cmd_set_gpg_keys "$@" ;;
         *)       COMMAND="get" ; cmd_get "$cmd" ;;
     esac
 
@@ -619,7 +656,7 @@ run_cmd() {
     [[ -n $WORKDIR ]] && rm -rf $WORKDIR
 }
 run_shell() {
-    passphrase
+    get_passphrase
     list_commands
     timeout_start
     while true; do
@@ -627,7 +664,7 @@ run_shell() {
         COMMAND=$command
         case "$command" in
             q)   return ;;
-            p)   cmd_change_passphrase ;;
+            p)   cmd_set_passphrase ;;
             '')  list_commands ;;
             *)   run_cmd $command $options ;;
         esac
@@ -668,6 +705,9 @@ CLIP_TIME=45
 
 # Shell will time out after this many seconds of inactivity.
 TIMEOUT=300  # 5 min
+
+# May be needed for asymmetric encryption.
+GPG_OPTS=
 _EOF
     source $config_file
 
@@ -693,6 +733,7 @@ main() {
     fi
     ARCHIVE="$PW_DIR/$ARCHIVE.tgz"
     [[ -f $ARCHIVE.gpg ]] || archive_init
+    [[ -f $ARCHIVE.gpg.keys ]] &&  source $ARCHIVE.gpg.keys    # get GPG_KEYS
 
     COMMAND="$PROGRAM $1"
     run_cmd "$@"
