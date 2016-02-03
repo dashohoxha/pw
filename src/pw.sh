@@ -26,12 +26,12 @@ encrypt() {
     fi
 }
 decrypt() {
-    local archive_gpg=$1
+    local archive=$1
     local opts="--quiet --yes --batch $GPG_OPTS"
     if [[ -z $GPG_KEYS ]]; then
-        $GPG $opts --passphrase-fd 0 $archive_gpg <<< "$PASSPHRASE"
+        $GPG $opts --passphrase-fd 0 $archive.gpg <<< "$PASSPHRASE"
     else
-        $GPG --decrypt $opts --use-agent $archive_gpg
+        $GPG --decrypt $opts --use-agent --output=$archive $archive.gpg
     fi
 }
 
@@ -71,9 +71,12 @@ archive_lock() {
     get_passphrase
     tar -czf $ARCHIVE -C $WORKDIR . >/dev/null 2>&1
     encrypt $ARCHIVE
+    local err=$?
 
     rm -rf $WORKDIR $ARCHIVE
     unset WORKDIR
+
+    [[ $err -ne 0 ]] && exit $err
 }
 archive_unlock() {
     [[ -s $ARCHIVE.gpg ]] || return
@@ -84,8 +87,9 @@ archive_unlock() {
     export GIT_WORK_TREE="$WORKDIR"
 
     get_passphrase
-    decrypt $ARCHIVE.gpg
-    [[ $? -ne 0 ]] && exit 1
+    decrypt $ARCHIVE
+    local err=$?
+    [[ $err -ne 0 ]] && exit $err
     tar -xzf $ARCHIVE -C $WORKDIR >/dev/null 2>&1
     rm -f $ARCHIVE
 }
@@ -605,7 +609,7 @@ cmd_log() {
 }
 
 cmd_set_passphrase() {
-    archive_unlock
+    archive_unlock || return
     new_passphrase
     unset GPG_KEYS
     archive_lock
@@ -613,11 +617,11 @@ cmd_set_passphrase() {
 }
 
 cmd_set_gpg_keys() {
-    archive_unlock
+    archive_unlock || return
     GPG_KEYS="$@"
     unset PASSPHRASE
-    cat <<<"GPG_KEYS=\"$GPG_KEYS\"" > $ARCHIVE.gpg.keys
     archive_lock
+    cat <<<"GPG_KEYS=\"$GPG_KEYS\"" > $ARCHIVE.gpg.keys
 }
 
 #
