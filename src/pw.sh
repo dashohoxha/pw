@@ -694,6 +694,11 @@ main() {
     ARCHIVE="$PW_DIR/$ARCHIVE.tgz"
     [[ -f $ARCHIVE.gpg ]] || archive_init
 
+    if [[ -f $ARCHIVE.gpg.keys ]]; then
+        GPG_ASYMM=true
+        source $ARCHIVE.gpg.keys    # contains GPG_KEYS
+    fi
+
     COMMAND="$PROGRAM $1"
     run_cmd "$@"
 
