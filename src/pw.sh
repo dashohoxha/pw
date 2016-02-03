@@ -619,6 +619,7 @@ cmd_set_passphrase() {
 cmd_set_gpg_keys() {
     archive_unlock || return
     GPG_KEYS="$@"
+    [[ -z $GPG_KEYS ]] && $GPG --gen-key
     unset PASSPHRASE
     archive_lock
     cat <<<"GPG_KEYS=\"$GPG_KEYS\"" > $ARCHIVE.gpg.keys
