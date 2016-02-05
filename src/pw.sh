@@ -39,7 +39,7 @@ get_passphrase() {
     [[ -z $GPG_KEYS ]] || return
     [[ -z $PASSPHRASE ]] || return
     read -r -p "Passphrase for archive '$ARCHIVE': " -s PASSPHRASE || exit 1
-    echo
+    [[ -t 0 ]] && echo
 }
 new_passphrase() {
     local passphrase passphrase_again
@@ -401,7 +401,7 @@ cmd_set() {
     if [[ $force -eq 0 && -e "$WORKDIR/$path" ]]; then
         yesno "An entry already exists for $path. Overwrite it?" || return
     fi
-    mkdir -p "$WORKDIR/$(dirname "$path")"
+    mkdir -p "$WORKDIR/$(dirname "$path")" || return
 
     if [[ $multiline -eq 1 ]]; then
         echo "Enter contents of $path and press Ctrl+D when finished:"
