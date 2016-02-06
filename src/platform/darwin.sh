@@ -1,5 +1,7 @@
-# Copyright (C) 2012 - 2014 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
-# This file is licensed under the GPLv2+. Please see COPYING for more information.
+# Copyright (C) 2012 - 2014 Jason A. Donenfeld <Jason@zx2c4.com>.
+# Copyright (C) 2016 Dashamir Hoxha <dashohoxha@gmail.com>.
+# All Rights Reserved. This file is licensed under the GPLv2+.
+# Please see COPYING for more information.
 
 clip() {
 	local sleep_argv0="password store sleep for user $(id -u)"
