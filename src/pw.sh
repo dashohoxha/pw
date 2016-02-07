@@ -5,6 +5,8 @@
 # All Rights Reserved. This file is licensed under the GPLv2+.
 # Please see COPYING for more information.
 
+PW_DIR="${PW_DIR:-$HOME/.pw}"
+
 umask 077
 set -o pipefail
 
@@ -730,9 +732,11 @@ timeout_clear() {
 }
 
 config() {
+    [[ -d $PW_DIR ]] || mkdir -p $PW_DIR
+
     # read the config file
     local config_file="$PW_DIR/config.sh"
-    [[ -f $config_file ]] || cat <<-_EOF > $config_file
+    [[ -f $config_file ]] || cat <<-_EOF > "$config_file"
 # Default archive, if no -a option is given.
 ARCHIVE=pw
 
@@ -746,7 +750,7 @@ TIMEOUT=300  # 5 min
 # May be needed for asymmetric encryption.
 GPG_OPTS=
 _EOF
-    source $config_file
+    source "$config_file"
 
     # set defaults, if some configurations are missing
     ARCHIVE=${ARCHIVE:-pw}
@@ -756,8 +760,11 @@ _EOF
 }
 
 main() {
-    PW_DIR="${PW_DIR:-$HOME/.pw}"
-    [[ -d $PW_DIR ]] || mkdir -p $PW_DIR
+    case "$1" in
+        v|-v|version|--version)  cmd_version "$@" ; exit 0 ;;
+        help|-h|--help)          cmd_help "$@" ; exit 0 ;;
+    esac
+
     config
 
     PROGRAM="${0##*/}"
