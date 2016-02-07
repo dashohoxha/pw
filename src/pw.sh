@@ -273,6 +273,12 @@ Commands and their options are listed below.
         you use a passphrase (for symmetric encryption), or gpg key(s)
         (for asymmetric encryption).
 
+    export dirpath
+        Export the content of the archive to the given directory.
+
+    import dirpath
+        Import the content of the archive from the given directory.
+
     help
         Show this help text.
 
@@ -627,6 +633,25 @@ cmd_set_gpg_keys() {
     cat <<<"GPG_KEYS=\"$GPG_KEYS\"" > $ARCHIVE.gpg.keys
 }
 
+cmd_export() {
+    local path=$1
+    [[ ! -d $path ]] && echo "Usage: $COMMAND dirpath" && return
+
+    archive_unlock || return
+    cp -a $WORKDIR/* $path/
+    cp -a $WORKDIR/.git $path/
+    rm -rf $WORKDIR
+}
+
+cmd_import() {
+    local path=$1
+    [[ ! -d $path ]] && echo "Usage: $COMMAND dirpath" && return
+
+    WORKDIR="$path"
+    archive_lock
+    unset WORKDIR
+}
+
 #
 # END subcommand functions
 #
@@ -651,6 +676,8 @@ run_cmd() {
         log)                     cmd_log "$@" ;;
         pass|set-passphrase)     cmd_set_passphrase "$@" ;;
         keys|set-keys)           cmd_set_gpg_keys "$@" ;;
+        export)                  cmd_export "$@" ;;
+        import)                  cmd_import "$@" ;;
         *)       COMMAND="get" ; cmd_get "$cmd" ;;
     esac
 
