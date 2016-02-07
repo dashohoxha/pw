@@ -646,10 +646,18 @@ cmd_export() {
 cmd_import() {
     local path=$1
     [[ ! -d $path ]] && echo "Usage: $COMMAND dirpath" && return
+    path=${path%/}
 
-    WORKDIR="$path"
+    archive_unlock || return
+    find $path -name '.git' -prune -or -type f \
+        | sed -e '/\.git$/d' -e "s#$path/##" \
+        | while read pwfile
+    do
+        echo "$pwfile"
+        cat "$path/$pwfile" > "$WORKDIR/$pwfile"
+        git_add_file "$WORKDIR/$pwfile" "Import $pwfile."
+    done
     archive_lock
-    unset WORKDIR
 }
 
 #
