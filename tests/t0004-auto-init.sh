@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 test_description='If an archive does not exist, it is created automatically.'
-source "$(dirname "$0")"/setup.sh
+source "$(dirname "$0")"/setup-02.sh
 
 test_expect_success 'A new archive is created if it does not exist.' '
     [[ ! -e "$PW_DIR/pw.tgz.gpg" ]] &&
