@@ -21,21 +21,21 @@ encrypt() {
     local opts="--quiet --yes --batch --compress-algo=none $GPG_OPTS"
     if [[ -z $GPG_KEYS ]]; then
         $GPG --symmetric $opts --cipher-algo=AES256 \
-            --passphrase-fd 0 $archive <<< "$PASSPHRASE"
+            --passphrase-fd 0 "$archive" <<< "$PASSPHRASE"
     else
         local recipients=''
         for key in $GPG_KEYS; do recipients="$recipients -r $key"; done
         $GPG --encrypt $opts --use-agent --no-encrypt-to \
-            $recipients $archive
+            $recipients "$archive"
     fi
 }
 decrypt() {
     local archive=$1
     local opts="--quiet --yes --batch $GPG_OPTS"
     if [[ -z $GPG_KEYS ]]; then
-        $GPG $opts --passphrase-fd 0 $archive.gpg <<< "$PASSPHRASE"
+        $GPG $opts --passphrase-fd 0 "$archive.gpg" <<< "$PASSPHRASE"
     else
-        $GPG --decrypt $opts --use-agent --output=$archive $archive.gpg
+        $GPG --decrypt $opts --use-agent --output="$archive" "$archive.gpg"
     fi
 }
 
@@ -52,7 +52,7 @@ new_passphrase() {
         echo
         read -r -p "Retype the passphrase for archive '$ARCHIVE': " -s passphrase_again || return
         echo
-        if [[ $passphrase == "$passphrase_again" ]]; then
+        if [[ "$passphrase" == "$passphrase_again" ]]; then
             PASSPHRASE="$passphrase"
             break
         else
@@ -64,48 +64,48 @@ new_passphrase() {
 archive_init() {
     echo "Creating a new archive '$ARCHIVE'."
     new_passphrase
-    mkdir -p $PW_DIR
+    mkdir -p "$PW_DIR"
     make_workdir
     archive_lock
     cmd_git init
 }
 archive_lock() {
-    [[ -d $WORKDIR ]]  || return
+    [[ -d "$WORKDIR" ]]  || return
 
     get_passphrase
-    tar -czf $ARCHIVE -C $WORKDIR . >/dev/null 2>&1
-    encrypt $ARCHIVE
+    tar -czf "$ARCHIVE" -C "$WORKDIR" . >/dev/null 2>&1
+    encrypt "$ARCHIVE"
     local err=$?
 
-    rm -rf $WORKDIR $ARCHIVE
+    rm -rf "$WORKDIR" "$ARCHIVE"
     unset WORKDIR
 
     [[ $err -ne 0 ]] && exit $err
 }
 archive_unlock() {
-    [[ -s $ARCHIVE.gpg ]] || return
+    [[ -s "$ARCHIVE.gpg" ]] || return
 
     make_workdir
-    [[ -d $WORKDIR ]]  || exit 1
+    [[ -d "$WORKDIR" ]]  || exit 1
     export GIT_DIR="$WORKDIR/.git"
     export GIT_WORK_TREE="$WORKDIR"
 
     get_passphrase
-    decrypt $ARCHIVE
+    decrypt "$ARCHIVE"
     local err=$?
     [[ $err -ne 0 ]] && exit $err
-    tar -xzf $ARCHIVE -C $WORKDIR >/dev/null 2>&1
-    rm -f $ARCHIVE
+    tar -xzf "$ARCHIVE" -C "$WORKDIR" >/dev/null 2>&1
+    rm -f "$ARCHIVE"
 }
 
 git_add_file() {
-    [[ -d $GIT_DIR ]] || return
+    [[ -d "$GIT_DIR" ]] || return
     git add "$1" >/dev/null || return
     [[ -n $(git status --porcelain "$1") ]] || return
     git_commit "$2"
 }
 git_commit() {
-    [[ -d $GIT_DIR ]] || return
+    [[ -d "$GIT_DIR" ]] || return
     git commit -m "$1" >/dev/null
 }
 yesno() {
@@ -321,7 +321,7 @@ cmd_list() {
     else
         echo "Error: $path is not in the password store."
     fi
-    rm -rf $WORKDIR   # cleanup
+    rm -rf "$WORKDIR"   # cleanup
 }
 
 cmd_get() {
@@ -335,7 +335,7 @@ cmd_get() {
     else
         echo "Error: $path is not in the password store."
     fi
-    rm -rf $WORKDIR   # cleanup
+    rm -rf "$WORKDIR"   # cleanup
 }
 
 cmd_show() {
@@ -350,7 +350,7 @@ cmd_show() {
     else
         echo "Error: $path is not in the password store."
     fi
-    rm -rf $WORKDIR   # cleanup
+    rm -rf "$WORKDIR"   # cleanup
 }
 
 cmd_find() {
@@ -369,22 +369,22 @@ cmd_find() {
     archive_unlock    # extract to $WORKDIR
     if [[ $tree -eq 0 ]]; then
         pattern="*${1}*"
-        find $WORKDIR -name '.git' -prune -or \( -type f -and -name "$pattern" \) \
+        find "$WORKDIR" -name '.git' -prune -or \( -type f -and -name "$pattern" \) \
             | sed -e "s#$WORKDIR/##" -e '/\.git/d'
     else
         IFS="," eval 'echo "Search Terms: $*"'
         local terms="*$(printf '%s*|*' "$@")"
-        tree -C -l --noreport -P "${terms%|*}" --prune $WORKDIR | tail -n +2
+        tree -C -l --noreport -P "${terms%|*}" --prune "$WORKDIR" | tail -n +2
     fi
-    rm -rf $WORKDIR   # cleanup
+    rm -rf "$WORKDIR"   # cleanup
 }
 
 cmd_grep() {
     archive_unlock    # extract to $WORKDIR
     [[ $# -ne 1 ]] && echo "Usage: $COMMAND search-string" && return
     local search="$1"
-    grep --color=always "$search" --exclude-dir=.git --recursive $WORKDIR | sed -e "s#$WORKDIR/##"
-    rm -rf $WORKDIR   # cleanup
+    grep --color=always "$search" --exclude-dir=.git --recursive "$WORKDIR" | sed -e "s#$WORKDIR/##"
+    rm -rf "$WORKDIR"   # cleanup
 }
 
 cmd_set() {
@@ -424,7 +424,7 @@ cmd_set() {
             echo
             read -r -p "Retype password for $path: " -s password_again || return
             echo
-            if [[ $password == "$password_again" ]]; then
+            if [[ "$password" == "$password_again" ]]; then
                 cat <<< "$password" > "$WORKDIR/$path"
                 break
             else
@@ -527,11 +527,11 @@ cmd_delete() {
     archive_unlock    # extract to $WORKDIR
 
     local pwfile="$WORKDIR/${path%/}"
-    if [[ ! -d $pwfile ]]; then
+    if [[ ! -d "$pwfile" ]]; then
         pwfile="$WORKDIR/$path"
-        if [[ ! -f $pwfile ]]; then
+        if [[ ! -f "$pwfile" ]]; then
             echo "Error: $path is not in the password store."
-            rm -rf $WORKDIR  # cleanup $WORKDIR
+            rm -rf "$WORKDIR"  # cleanup $WORKDIR
             return
         fi
     fi
@@ -572,14 +572,14 @@ cmd_copy_move() {
     local new_path="$WORKDIR/$2"
     local old_dir="$old_path"
 
-    if [[ ! -d $old_path ]]; then
+    if [[ ! -d "$old_path" ]]; then
         old_dir="${old_path%/*}"
         old_path="${old_path}"
-        [[ ! -f $old_path ]] && echo "Error: $1 is not in the password store." && return
+        [[ ! -f "$old_path" ]] && echo "Error: $1 is not in the password store." && return
     fi
 
     mkdir -p "${new_path%/*}"
-    [[ -d $old_path || -d $new_path || $new_path =~ /$ ]] || new_path="${new_path}"
+    [[ -d "$old_path" || -d "$new_path" || "$new_path" =~ /$ ]] || new_path="${new_path}"
 
     local interactive="-i"
     [[ ! -t 0 || $force -eq 1 ]] && interactive="-f"
@@ -587,7 +587,7 @@ cmd_copy_move() {
     if [[ $move -eq 1 ]]; then
         mv $interactive "$old_path" "$new_path" || return
 
-        if [[ -d $GIT_DIR && ! -e $old_path ]]; then
+        if [[ -d "$GIT_DIR" && ! -e "$old_path" ]]; then
             git rm -qr "$old_path" >/dev/null
             git_add_file "$new_path" "Rename ${1} to ${2}."
         fi
@@ -606,7 +606,7 @@ cmd_git() {
     if [[ $1 == "init" ]]; then
         git "$@" >/dev/null || return
         git_add_file "$WORKDIR" "Initialization."
-    elif [[ -d $GIT_DIR ]]; then
+    elif [[ -d "$GIT_DIR" ]]; then
         export TMPDIR="$WORKDIR"
         git "$@"
     else
@@ -623,7 +623,7 @@ cmd_set_passphrase() {
     new_passphrase
     unset GPG_KEYS
     archive_lock
-    rm -f $ARCHIVE.gpg.keys
+    rm -f "$ARCHIVE.gpg.keys"
 }
 
 cmd_set_gpg_keys() {
@@ -632,26 +632,26 @@ cmd_set_gpg_keys() {
     [[ -z $GPG_KEYS ]] && $GPG --gen-key
     unset PASSPHRASE
     archive_lock
-    cat <<<"GPG_KEYS=\"$GPG_KEYS\"" > $ARCHIVE.gpg.keys
+    cat <<<"GPG_KEYS=\"$GPG_KEYS\"" > "$ARCHIVE.gpg.keys"
 }
 
 cmd_export() {
     local path=$1
-    [[ ! -d $path ]] && echo "Usage: $COMMAND dirpath" && return
+    [[ ! -d "$path" ]] && echo "Usage: $COMMAND dirpath" && return
 
     archive_unlock || return
-    cp -a $WORKDIR/* $path/
-    cp -a $WORKDIR/.git $path/
-    rm -rf $WORKDIR
+    cp -a "$WORKDIR"/* "$path/"
+    cp -a "$WORKDIR/.git" "$path/"
+    rm -rf "$WORKDIR"
 }
 
 cmd_import() {
     local path=$1
-    [[ ! -d $path ]] && echo "Usage: $COMMAND dirpath" && return
+    [[ ! -d "$path" ]] && echo "Usage: $COMMAND dirpath" && return
     path=${path%/}
 
     archive_unlock || return
-    find $path -name '.git' -prune -or -type f \
+    find "$path" -name '.git' -prune -or -type f \
         | sed -e '/\.git$/d' -e "s#$path/##" \
         | while read pwfile
     do
@@ -692,7 +692,7 @@ run_cmd() {
     esac
 
     # cleanup the temporary workdir, if it is still there
-    [[ -n $WORKDIR ]] && rm -rf $WORKDIR
+    [[ -n "$WORKDIR" ]] && rm -rf "$WORKDIR"
 }
 run_shell() {
     get_passphrase
@@ -732,11 +732,11 @@ timeout_clear() {
 }
 
 config() {
-    [[ -d $PW_DIR ]] || mkdir -p $PW_DIR
+    [[ -d "$PW_DIR" ]] || mkdir -p "$PW_DIR"
 
     # read the config file
     local config_file="$PW_DIR/config.sh"
-    [[ -f $config_file ]] || cat <<-_EOF > "$config_file"
+    [[ -f "$config_file" ]] || cat <<-_EOF > "$config_file"
 # Default archive, if no -a option is given.
 ARCHIVE=pw
 
@@ -776,8 +776,8 @@ main() {
         shift 2
     fi
     ARCHIVE="$PW_DIR/$ARCHIVE.tgz"
-    [[ -f $ARCHIVE.gpg ]] || archive_init
-    [[ -f $ARCHIVE.gpg.keys ]] &&  source $ARCHIVE.gpg.keys    # get GPG_KEYS
+    [[ -f "$ARCHIVE.gpg" ]] || archive_init
+    [[ -f "$ARCHIVE.gpg.keys" ]] &&  source "$ARCHIVE.gpg.keys"    # get GPG_KEYS
 
     COMMAND="$PROGRAM $1"
     run_cmd "$@"
