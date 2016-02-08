@@ -18,11 +18,10 @@ test_expect_success 'A given archive is created if it does not exist.' '
     "$PW" -a test1 ls <<< "$PASSPHRASE"
 '
 
-test_expect_success 'Another archive is created if it does not exist.' '
-    [[ ! -e "$PW_DIR/test2.tgz.gpg" ]] &&
-    echo -e "$PASSPHRASE\n$PASSPHRASE\n" | "$PW" -a test2 ls | grep "Creating a new archive " &&
-    [[ -e "$PW_DIR/test2.tgz.gpg" ]] &&
-    "$PW" -a test2 ls <<< "$PASSPHRASE"
+test_expect_success 'Error: the entered passphrases do not match..' '
+    [[ ! -e "$PW_DIR/test3.tgz.gpg" ]] &&
+    echo -e "abc\n$123\n" | "$PW" -a test3 ls | grep "Error: the entered passphrases do not match." &&
+    [[ ! -e "$PW_DIR/test3.tgz.gpg" ]]
 '
 
 test_done
