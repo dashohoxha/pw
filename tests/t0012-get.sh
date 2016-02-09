@@ -4,7 +4,11 @@ test_description='Test command get.'
 source "$(dirname "$0")"/setup-03.sh
 
 test_expect_success 'Set a new password.' '
-    echo -e "$PASSPHRASE\n$PASS1\n$PASS1" | "$PW" set test1
+    "$PW" set test1 <<-_EOF
+$PASSPHRASE
+$PASS1
+$PASS1
+_EOF
 '
 
 test_expect_success 'Test get.' '

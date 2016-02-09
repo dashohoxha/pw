@@ -4,13 +4,21 @@ test_description='Test command set.'
 source "$(dirname "$0")"/setup-03.sh
 
 test_expect_success 'Set a password.' '
-    echo -e "$PASSPHRASE\n$PASS1\n$PASS1" | "$PW" set test1 &&
+    "$PW" set test1 <<-_EOF &&
+$PASSPHRASE
+$PASS1
+$PASS1
+_EOF
     local pass1=$("$PW" show test1 <<<"$PASSPHRASE") &&
     [[ $PASS1 == $pass1 ]]
 '
 
 test_expect_success 'Check that options -e and -m are exclusive.' '
-    echo -e "$PASSPHRASE\n$PASS1\n$PASS1" | "$PW" set test2 -e -m | grep "Usage:"
+    "$PW" set test2 -e -m <<-_EOF | grep "Usage:"
+$PASSPHRASE
+$PASS1
+$PASS1
+_EOF
 '
 
 test_expect_success 'Set with multiline' '

@@ -5,7 +5,10 @@ source "$(dirname "$0")"/setup-02.sh
 
 test_expect_success 'A new archive is created if it does not exist.' '
     [[ ! -e "$PW_DIR/pw.tgz.gpg" ]] &&
-    echo -e "$PASSPHRASE\n$PASSPHRASE\n" | "$PW" ls | grep "Creating a new archive " &&
+    "$PW" ls <<-_EOF | grep "Creating a new archive " &&
+$PASSPHRASE
+$PASSPHRASE
+_EOF
     [[ -e "$PW_DIR/config.sh" ]] &&
     [[ -e "$PW_DIR/pw.tgz.gpg" ]] &&
     "$PW" ls <<< "$PASSPHRASE"
@@ -13,14 +16,17 @@ test_expect_success 'A new archive is created if it does not exist.' '
 
 test_expect_success 'A given archive is created if it does not exist.' '
     [[ ! -e "$PW_DIR/test1.tgz.gpg" ]] &&
-    echo -e "$PASSPHRASE\n$PASSPHRASE\n" | "$PW" -a test1 ls | grep "Creating a new archive " &&
+    "$PW" -a test1 ls <<-_EOF | grep "Creating a new archive " &&
+$PASSPHRASE
+$PASSPHRASE
+_EOF
     [[ -e "$PW_DIR/test1.tgz.gpg" ]] &&
     "$PW" -a test1 ls <<< "$PASSPHRASE"
 '
 
 test_expect_success 'Error: the entered passphrases do not match..' '
     [[ ! -e "$PW_DIR/test3.tgz.gpg" ]] &&
-    echo -e "abc\n$123\n" | "$PW" -a test3 ls | grep "Error: the entered passphrases do not match." &&
+    echo -e "abc\n123" | "$PW" -a test3 ls | grep "Error: the entered passphrases do not match." &&
     [[ ! -e "$PW_DIR/test3.tgz.gpg" ]]
 '
 
