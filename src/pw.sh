@@ -109,7 +109,6 @@ git_commit() {
     git commit -m "$1" >/dev/null
 }
 yesno() {
-    [[ -t 0 ]] || return 0
     local response
     read -r -p "$1 [y/N] " response
     [[ $response == [yY] ]] || return 1
