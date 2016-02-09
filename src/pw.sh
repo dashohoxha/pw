@@ -475,7 +475,7 @@ cmd_generate() {
         && return
 
     local path="$1"
-    local length="${2:-20}"
+    local length="${2:-30}"    # default length 30
     check_sneaky_paths "$path"
     [[ ! $length =~ ^[0-9]+$ ]] \
         && echo "Error: pass-length \"$length\" must be a number." \
