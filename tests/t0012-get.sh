@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-test_description='Test commands: set, ls, show'
+test_description='Test command get.'
 source "$(dirname "$0")"/setup-03.sh
 
 test_expect_success 'Set a new password.' '
