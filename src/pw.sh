@@ -379,9 +379,9 @@ cmd_find() {
 }
 
 cmd_grep() {
-    archive_unlock    # extract to $WORKDIR
     [[ $# -ne 1 ]] && echo "Usage: $COMMAND search-string" && return
     local search="$1"
+    archive_unlock    # extract to $WORKDIR
     grep --color=always "$search" --exclude-dir=.git --recursive "$WORKDIR" | sed -e "s#$WORKDIR/##"
     rm -rf "$WORKDIR"   # cleanup
 }
