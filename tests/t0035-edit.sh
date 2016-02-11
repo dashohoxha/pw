@@ -5,13 +5,16 @@ source "$(dirname "$0")"/setup-03.sh
 
 test_expect_success 'Test command edit.' '
     "$PW" gen test1 <<<"$PASSPHRASE" &&
-
-    export FAKE_EDITOR_PASSWORD="fake password" &&
-    export EDITOR="$SHARNESS_TEST_DIRECTORY/fake-editor.sh" &&
-    "$PW" edit test1 <<<"$PASSPHRASE" &&
-
+    export EDITOR=ed &&
+    "$PW" edit test1 <<-_EOF &&
+$PASSPHRASE
+1c
+$PASS1
+.
+wq
+_EOF
     local pass=$("$PW" show test1 <<<"$PASSPHRASE" | head -n 1) &&
-    [[ "$pass" == "$FAKE_EDITOR_PASSWORD" ]]
+    [[ "$pass" == "$PASS1" ]]
 '
 
 test_done
