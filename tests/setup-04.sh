@@ -1,5 +1,10 @@
 source "$(dirname "$0")"/setup-03.sh
 
+remove_special_chars() {
+    sed 's/\x1B\[[0-9;]*[JKmsu]//g'
+}
+
+
 test_expect_success 'Create some test entries.' '
     "$PW" set test1 <<-_EOF &&
 $PASSPHRASE
