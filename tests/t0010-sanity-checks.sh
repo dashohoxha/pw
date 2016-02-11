@@ -8,7 +8,7 @@ test_expect_success 'Make sure we can run `ls`' '
 '
 
 test_expect_success 'Make sure we can run `pw`' '
-    "$PW" version
+    pw version
 '
 
 test_done

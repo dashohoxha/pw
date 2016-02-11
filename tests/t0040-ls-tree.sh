@@ -13,7 +13,7 @@ test_expect_success 'Test ls --tree' '
 |-- test6
 `-- test7
 _EOF
-    echo "$PASSPHRASE" | "$PW" ls -t | remove_special_chars > ls-tree-2.txt &&
+    pwp ls -t | remove_special_chars > ls-tree-2.txt &&
     test_cmp ls-tree-1.txt ls-tree-2.txt
 '
 

@@ -5,19 +5,19 @@ source "$(dirname "$0")"/setup-01.sh
 
 
 test_expect_success 'Make sure we can run `pw version`' '
-    "$PW" version | grep "pw: a simple password manager"
+    pw version | grep "pw: a simple password manager"
 '
 
 test_expect_success 'Make sure we can run `pw v`' '
-    "$PW" v | grep "pw: a simple password manager"
+    pw v | grep "pw: a simple password manager"
 '
 
 test_expect_success 'Make sure we can run `pw -v`' '
-    "$PW" -v | grep "pw: a simple password manager"
+    pw -v | grep "pw: a simple password manager"
 '
 
 test_expect_success 'Make sure we can run `pw --version`' '
-    "$PW" --version | grep "pw: a simple password manager"
+    pw --version | grep "pw: a simple password manager"
 '
 
 test_done
