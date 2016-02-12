@@ -657,6 +657,7 @@ cmd_import() {
         | while read pwfile
     do
         echo "$pwfile"
+        mkdir -p "$(dirname "$WORKDIR/$pwfile")"
         cat "$path/$pwfile" > "$WORKDIR/$pwfile"
         git_add_file "$WORKDIR/$pwfile" "Import $pwfile."
     done
