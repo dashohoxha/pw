@@ -577,14 +577,16 @@ cmd_copy_move() {
         [[ ! -f "$old_path" ]] && echo "Error: $1 is not in the password store." && return
     fi
 
-    mkdir -p "${new_path%/*}"
     [[ -d "$old_path" || -d "$new_path" || "$new_path" =~ /$ ]] || new_path="${new_path}"
-
-    local interactive="-i"
-    [[ ! -t 0 || $force -eq 1 ]] && interactive="-f"
+    if [[ $force -eq 0 ]]; then
+        if [[ -f "$new_path" ]] || [[ -d "$new_path" ]]; then
+            yesno "An entry for $2 already exists. Continue?" || return
+        fi
+    fi
+    mkdir -p "${new_path%/*}"
 
     if [[ $move -eq 1 ]]; then
-        mv $interactive "$old_path" "$new_path" || return
+        mv -f "$old_path" "$new_path" || return
 
         if [[ -d "$GIT_DIR" && ! -e "$old_path" ]]; then
             git rm -qr "$old_path" >/dev/null
@@ -592,7 +594,7 @@ cmd_copy_move() {
         fi
         rmdir -p "$old_dir" 2>/dev/null
     else
-        cp $interactive -r "$old_path" "$new_path" || return
+        cp -rf "$old_path" "$new_path" || return
         git_add_file "$new_path" "Copy ${1} to ${2}."
     fi
 
