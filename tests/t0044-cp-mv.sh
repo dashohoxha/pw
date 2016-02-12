@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-test_description='Test command mv'
+test_description='Test commands cp and mv'
 source "$(dirname "$0")"/setup-04.sh
 
 test_expect_success 'Test usage' '
