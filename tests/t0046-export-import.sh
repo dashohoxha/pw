@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-test_description='Test command `ls -t`'
+test_description='Test commands export and import'
 source "$(dirname "$0")"/setup-04.sh
 
 test_expect_success 'Test usage' '
