@@ -7,7 +7,7 @@ q
 _EOF
 '
 
-run_shell_commands() {
+run_in_shell() {
     local commands=$(IFS=$'\n'; echo "$*")
     cat <<-_EOF | pw | sed -e '/Commands:/,+2d'
 $PASSPHRASE
