@@ -330,7 +330,8 @@ cmd_get() {
     archive_unlock    # extract to $WORKDIR
     if [[ -f "$WORKDIR/$path" ]]; then
         local pass="$(cat "$WORKDIR/$path" | head -n 1)"
-        [[ -n "$pass" ]] && clip "$pass" "$path"
+        [[ -n "$pass" ]] \
+            && if [[ -t 0 ]]; then clip "$pass" "$path"; else echo "$pass"; fi
     else
         echo "Error: $path is not in the password store."
     fi
@@ -499,7 +500,7 @@ cmd_generate() {
         mv "$pwfile_temp" "$pwfile"
         rm -f "$pwfile_temp"
     fi
-    clip "$pass" "$path"
+    [[ -t 0 ]] && clip "$pass" "$path"
 
     local verb="Add" ; [[ $inplace -eq 1 ]] && verb="Replace"
     git_add_file "$pwfile" "$verb generated password for ${path}."
