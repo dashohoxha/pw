@@ -41,4 +41,43 @@ test_expect_success 'Test get.' '
     [[ "$(run_shell_commands "test2/test4")" == $PASS2 ]]
 '
 
+test_expect_success 'Test set.' '
+    run_shell_commands "set" | grep "Usage: set " &&
+
+    run_shell_commands "set test10" "$PASS1" "$PASS1" &&
+    [[ "$(pwp show test10)" == $PASS1 ]] &&
+
+    run_shell_commands "set test10" "y" "$PASS2" "$PASS2" &&
+    [[ "$(pwp show test10)" == $PASS2 ]]
+
+    run_shell_commands "set test10 -f" "$PASS3" "$PASS3" &&
+    [[ "$(pwp show test10)" == $PASS3 ]]
+'
+
+test_expect_success 'Test gen.' '
+    run_shell_commands "gen" | grep "Usage: gen " &&
+
+    run_shell_commands "gen test11" &&
+    [[ $(pwp show test11 | wc -m) -eq 31 ]] &&
+
+    run_shell_commands "gen test12 35" &&
+    [[ $(pwp show test12 | wc -m) -eq 36 ]] &&
+
+    run_shell_commands "gen test3 xyz" | grep "Error: pass-length \"xyz\" must be a number." &&
+
+    run_shell_commands "gen test1" "n" &&
+    [[ $(pwp show test1) == $PASS1 ]] &&
+
+    run_shell_commands "gen test1" "y" &&
+    [[ $(pwp show test1) != $PASS1 ]] &&
+
+    run_shell_commands "gen test2/test4 -f" &&
+    [[ $(pwp show test2/test4) != $PASS2 ]] &&
+
+    run_shell_commands "gen test1 -i -f" | grep "Usage: gen " &&
+
+    run_shell_commands "gen test2/test5 -i" &&
+    pwp show test2/test5 | grep "second line"
+'
+
 test_done
