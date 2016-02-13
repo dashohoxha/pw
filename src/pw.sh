@@ -720,6 +720,7 @@ Type q to quit, p to change the passphrase.
 _EOF
 }
 timeout_start() {
+    [[ -t 0 ]] || return
     timeout_clear
     timeout_wait $$ &
     TIMEOUT_PID=$!
