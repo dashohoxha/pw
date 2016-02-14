@@ -22,7 +22,7 @@ test_expect_success 'Check that the given length is a number.' '
 test_expect_success 'Do not overwrite existing entry.' '
     local pass1=$(pwp show test1) &&
 
-    pw gen test1 <<-_EOF &&
+    cat <<-_EOF | pw gen test1 &&
 $PASSPHRASE
 n
 _EOF
@@ -33,7 +33,7 @@ _EOF
 test_expect_success 'Overwrite existing entry.' '
     local pass1=$(pwp show test1) &&
 
-    pw gen test1 <<_EOF &&
+    cat <<-_EOF | pw gen test1 &&
 $PASSPHRASE
 y
 _EOF
@@ -53,7 +53,7 @@ test_expect_success 'Check that options -i and -f are exclusive.' '
 '
 
 test_expect_success 'Check replacement of the first line with -i.' '
-    pw set test3 -m <<-_EOF &&
+    cat <<-_EOF | pw set test3 -m &&
 $PASSPHRASE
 $PASS1
 second line

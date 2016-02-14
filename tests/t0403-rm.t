@@ -5,13 +5,13 @@ source "$(dirname "$0")"/setup-04.sh
 
 test_expect_success 'Test rm' '
     [[ $(pwp show test1) == "$PASS1" ]] &&
-    pw rm test1 <<-_EOF &&
+    cat <<-_EOF | pw rm test1 &&
 $PASSPHRASE
 n
 _EOF
     [[ $(pwp show test1) == "$PASS1" ]] &&
 
-    pw rm test1 <<-_EOF &&
+    cat <<-_EOF | pw rm test1 &&
 $PASSPHRASE
 y
 _EOF

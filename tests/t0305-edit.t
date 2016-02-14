@@ -6,7 +6,7 @@ source "$(dirname "$0")"/setup-03.sh
 test_expect_success 'Test command edit.' '
     pwp gen test1 &&
     export EDITOR=ed &&
-    pw edit test1 <<-_EOF &&
+    cat <<-_EOF | pw edit test1 &&
 $PASSPHRASE
 1c
 $PASS1

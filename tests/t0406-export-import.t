@@ -19,7 +19,7 @@ test_expect_success 'Test export' '
 '
 
 test_expect_success 'Test import' '
-    pw -a archive1 gen test1 <<-_EOF &&
+    cat <<-_EOF | pw -a archive1 gen test1 &&
 $PASSPHRASE
 $PASSPHRASE
 _EOF

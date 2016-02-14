@@ -5,7 +5,7 @@ source "$(dirname "$0")"/setup-03.sh
 
 test_expect_success 'Test entry with subpaths.' '
     local entry="a/b/c/d" &&
-    pw set $entry <<-_EOF &&
+    cat <<-_EOF | pw set $entry &&
 $PASSPHRASE
 $PASS1
 $PASS1
@@ -17,7 +17,7 @@ _EOF
 
 test_expect_success 'Test entry with spaces.' '
     local entry="a b/c d" &&
-    pw set "$entry" <<-_EOF &&
+    cat <<-_EOF | pw set "$entry" &&
 $PASSPHRASE
 $PASS1
 $PASS1

@@ -4,7 +4,7 @@ test_description='Test command get.'
 source "$(dirname "$0")"/setup-03.sh
 
 test_expect_success 'Set a new password.' '
-    pw set test1 <<-_EOF
+    cat <<-_EOF | pw set test1
 $PASSPHRASE
 $PASS1
 $PASS1

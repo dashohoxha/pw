@@ -4,7 +4,7 @@ test_description='Test command set.'
 source "$(dirname "$0")"/setup-03.sh
 
 test_expect_success 'Set a password.' '
-    pw set test1 <<-_EOF &&
+    cat <<-_EOF | pw set test1 &&
 $PASSPHRASE
 $PASS1
 $PASS1
@@ -14,7 +14,7 @@ _EOF
 '
 
 test_expect_success 'Check that options -e and -m are exclusive.' '
-    pw set test2 -e -m <<-_EOF | grep "Usage:"
+    cat <<-_EOF | pw set test2 -e -m | grep "Usage:"
 $PASSPHRASE
 $PASS1
 $PASS1
@@ -22,7 +22,7 @@ _EOF
 '
 
 test_expect_success 'Set with multiline' '
-    pw set test2 -m <<-_EOF &&
+    cat <<-_EOF | pw set test2 -m &&
 $PASSPHRASE
 password
 second line
@@ -40,7 +40,7 @@ test_expect_success 'Do not overwrite existing entry.' '
 
 test_expect_success 'Overwrite existing entry.' '
     local pass1="x-$PASS1" &&
-    pw set test1 <<-_EOF &&
+    cat <<-_EOF | pw set test1 &&
 $PASSPHRASE
 y
 $pass1
@@ -52,7 +52,7 @@ _EOF
 
 test_expect_success 'Overwrite with -f,--force' '
     local pass1="xyz" &&
-    pw set test1 -f <<-_EOF &&
+    cat <<-_EOF | pw set test1 -f &&
 $PASSPHRASE
 $pass1
 $pass1

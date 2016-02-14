@@ -5,7 +5,7 @@ source "$(dirname "$0")"/setup-02.sh
 
 test_expect_success 'A new archive is created if it does not exist.' '
     [[ ! -e "$PW_DIR/pw.tgz.gpg" ]] &&
-    pw ls <<-_EOF | grep "Creating a new archive " &&
+    cat <<-_EOF | pw ls | grep "Creating a new archive " &&
 $PASSPHRASE
 $PASSPHRASE
 _EOF
@@ -16,7 +16,7 @@ _EOF
 
 test_expect_success 'A given archive is created if it does not exist.' '
     [[ ! -e "$PW_DIR/test1.tgz.gpg" ]] &&
-    pw -a test1 ls <<-_EOF | grep "Creating a new archive " &&
+    cat <<-_EOF | pw -a test1 ls | grep "Creating a new archive " &&
 $PASSPHRASE
 $PASSPHRASE
 _EOF

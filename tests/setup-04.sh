@@ -6,7 +6,7 @@ remove_special_chars() {
 
 
 test_expect_success 'Create some test entries.' '
-    pw set test1 <<-_EOF &&
+    cat <<-_EOF | pw set test1 &&
 $PASSPHRASE
 $PASS1
 $PASS1
@@ -14,13 +14,13 @@ _EOF
 
     pwp gen test2/test3 &&
 
-    pw set test2/test4 <<-_EOF &&
+    cat <<-_EOF | pw set test2/test4 &&
 $PASSPHRASE
 $PASS2
 $PASS2
 _EOF
 
-    pw set test2/test5 -m <<-_EOF &&
+    cat <<-_EOF | pw set test2/test5 -m &&
 $PASSPHRASE
 $PASS3
 second line
