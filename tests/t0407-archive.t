@@ -16,4 +16,14 @@ test_expect_success 'Move test-archive to another directory.' '
     [[ "$(pwp ls)" == "$(PW_DIR="$PW_DIR_1" pwp -a test-archive ls)" ]]
 '
 
+test_expect_success 'Access archive from shell.' '
+    cp "$PW_DIR/pw.tgz.gpg" "$PW_DIR/archive1.tgz.gpg" &&
+    pwp -a archive1 gen test11 &&
+    cat <<-_EOF | pw -a archive1 | grep "test11"
+$PASSPHRASE
+ls
+q
+_EOF
+'
+
 test_done
