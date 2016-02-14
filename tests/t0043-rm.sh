@@ -9,7 +9,7 @@ test_expect_success 'Test rm' '
 $PASSPHRASE
 n
 _EOF
-    [[ $(pwp show test1) == "$PASS1" ]]
+    [[ $(pwp show test1) == "$PASS1" ]] &&
 
     pw rm test1 <<-_EOF &&
 $PASSPHRASE
