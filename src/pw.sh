@@ -631,10 +631,22 @@ cmd_set_passphrase() {
 cmd_set_gpg_keys() {
     archive_unlock || return
     GPG_KEYS="$@"
-    [[ -z $GPG_KEYS ]] && $GPG --gen-key
+    [[ -z $GPG_KEYS ]] && gen_gpg_key
     unset PASSPHRASE
     archive_lock
     cat <<<"GPG_KEYS=\"$GPG_KEYS\"" > "$ARCHIVE.gpg.keys"
+}
+gen_gpg_key() {
+    local homedir="$PW_DIR/.gnupg"
+    if [[ -d "$homedir" ]]; then
+        GPG_KEYS=$($GPG --homedir "$homedir" --list-keys --with-colons | grep '^pub:' | cut -d':' -f5)
+        [[ -n "$GPG_KEYS" ]] && return
+    fi
+    mkdir -p "$homedir"
+    GPG_OPTS="$GPG_OPTS --homedir $homedir"
+    sed -i "$PW_DIR/config.sh" -e "/GPG_OPTS=/c GPG_OPTS=\"$GPG_OPTS\""
+    $GPG $GPG_OPTS --gen-key
+    GPG_KEYS=$($GPG --homedir "$homedir" --list-keys --with-colons | grep '^pub:' | cut -d':' -f5)
 }
 
 cmd_export() {
