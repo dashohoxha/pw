@@ -194,8 +194,9 @@ GETOPT="getopt"
 SHRED="shred -f -z"
 
 LIBDIR="$(dirname "$0")"
-PLATFORM="$(uname | cut -d _ -f 1 | tr '[:upper:]' '[:lower:]')"
-source "$LIBDIR/platform/$PLATFORM.sh" 2>/dev/null
+platform="$(uname | cut -d _ -f 1 | tr '[:upper:]' '[:lower:]')"
+platform_file="$LIBDIR/platform/$platform.sh"
+[[ -f "$platform_file" ]] && source "$platform_file"
 
 #
 # END platform definable

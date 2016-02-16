@@ -2,32 +2,26 @@ PREFIX ?= /usr
 DESTDIR ?=
 BINDIR ?= $(DESTDIR)$(PREFIX)/bin
 LIBDIR ?= $(DESTDIR)$(PREFIX)/lib
-MANDIR ?= $(DESTDIR)$(PREFIX)/share/man
+MANDIR ?= $(DESTDIR)$(PREFIX)/share/man/man1
 
-PLATFORM := $(shell uname | cut -d _ -f 1 | tr '[:upper:]' '[:lower:]')
+PW = $(BINDIR)/pw
+LIB = $(LIBDIR)/pw
 
-all:
-	@echo "Password manager is a shell script, so there is nothing to do. Try \"make install\" instead."
+all: install
 
 install:
 	@install -v -d "$(BINDIR)/"
-	@sed -e "s/^PLATFORM=.*/PLATFORM=$(PLATFORM)/" \
-	    -e "s:^LIBDIR=.*:LIBDIR=$(LIBDIR)/pw:" \
-	    src/pw.sh > "$(BINDIR)/pw"
-	@chmod 0755 "$(BINDIR)/pw"
+	@install -v -m 0755 src/pw.sh "$(PW)"
+	@sed -i $(PW) -e "s#^LIBDIR=.*#LIBDIR=\"$(LIB)\"#"
 
-	@install -v -d "$(LIBDIR)/pw/platform/"
-	@install -m 0644 -v "src/platform/$(PLATFORM).sh" "$(LIBDIR)/pw/platform/" 2>/dev/null || true
+	@install -v -d "$(LIB)/platform/"
+	@install -v -m 0644 $(wildcard src/platform/*) "$(LIB)/platform/"
 
-	@install -v -d "$(MANDIR)/pw/"
-	@install -m 0644 -v man/pw.1 "$(MANDIR)/pw/pw.1"
+	@install -v -d "$(MANDIR)/"
+	@install -v -m 0644 man/pw.1 "$(MANDIR)/pw.1"
 
 uninstall:
-	@rm -vrf \
-		"$(BINDIR)/pw" \
-		"$(LIBDIR)/pw" \
-		"$(MANDIR)/man1/pw.1" \
-	@rmdir "$(LIBDIR)/pw" 2>/dev/null || true
+	@rm -vrf "$(PW)" "$(LIB)" "$(MANDIR)/pw.1"
 
 TESTS = $(sort $(wildcard tests/t*.t))
 
