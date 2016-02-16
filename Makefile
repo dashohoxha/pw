@@ -1,72 +1,42 @@
 PREFIX ?= /usr
 DESTDIR ?=
-BINDIR ?= $(PREFIX)/bin
-LIBDIR ?= $(PREFIX)/lib
-MANDIR ?= $(PREFIX)/share/man
+BINDIR ?= $(DESTDIR)$(PREFIX)/bin
+LIBDIR ?= $(DESTDIR)$(PREFIX)/lib
+MANDIR ?= $(DESTDIR)$(PREFIX)/share/man
 
-PLATFORMFILE := src/platform/$(shell uname | cut -d _ -f 1 | tr '[:upper:]' '[:lower:]').sh
-
-BASHCOMP_PATH ?= $(DESTDIR)$(PREFIX)/share/bash-completion/completions
-ZSHCOMP_PATH ?= $(DESTDIR)$(PREFIX)/share/zsh/site-functions
-FISHCOMP_PATH ?= $(DESTDIR)$(PREFIX)/share/fish/vendor_completions.d
-
-ifeq ($(FORCE_ALL),1)
-FORCE_BASHCOMP := 1
-FORCE_ZSHCOMP := 1
-FORCE_FISHCOMP := 1
-endif
-ifneq ($(strip $(wildcard $(BASHCOMP_PATH))),)
-FORCE_BASHCOMP := 1
-endif
-ifneq ($(strip $(wildcard $(ZSHCOMP_PATH))),)
-FORCE_ZSHCOMP := 1
-endif
-ifneq ($(strip $(wildcard $(FISHCOMP_PATH))),)
-FORCE_FISHCOMP := 1
-endif
+PLATFORM := $(shell uname | cut -d _ -f 1 | tr '[:upper:]' '[:lower:]')
 
 all:
-	@echo "Password store is a shell script, so there is nothing to do. Try \"make install\" instead."
+	@echo "Password manager is a shell script, so there is nothing to do. Try \"make install\" instead."
 
-install-common:
-	@install -v -d "$(DESTDIR)$(MANDIR)/man1" && install -m 0644 -v man/pass.1 "$(DESTDIR)$(MANDIR)/man1/pass.1"
+install:
+	@install -v -d "$(BINDIR)/"
+	@sed -e "s/^PLATFORM=.*/PLATFORM=$(PLATFORM)/" \
+	    -e "s:^LIBDIR=.*:LIBDIR=$(LIBDIR)/pw:" \
+	    src/pw.sh > "$(BINDIR)/pw"
+	@chmod 0755 "$(BINDIR)/pw"
 
-	@[ "$(FORCE_BASHCOMP)" = "1" ] && install -v -d "$(BASHCOMP_PATH)" && install -m 0644 -v src/completion/pass.bash-completion "$(BASHCOMP_PATH)/pass" || true
-	@[ "$(FORCE_ZSHCOMP)" = "1" ] && install -v -d "$(ZSHCOMP_PATH)" && install -m 0644 -v src/completion/pass.zsh-completion "$(ZSHCOMP_PATH)/_pass" || true
-	@[ "$(FORCE_FISHCOMP)" = "1" ] && install -v -d "$(FISHCOMP_PATH)" && install -m 0644 -v src/completion/pass.fish-completion "$(FISHCOMP_PATH)/pass.fish" || true
+	@install -v -d "$(LIBDIR)/pw/platform/"
+	@install -m 0644 -v "src/platform/$(PLATFORM).sh" "$(LIBDIR)/pw/platform/" 2>/dev/null || true
 
-
-ifneq ($(strip $(wildcard $(PLATFORMFILE))),)
-install: install-common
-	@install -v -d "$(DESTDIR)$(LIBDIR)/password-store" && install -m 0644 -v "$(PLATFORMFILE)" "$(DESTDIR)$(LIBDIR)/password-store/platform.sh"
-	@install -v -d "$(DESTDIR)$(BINDIR)/"
-	sed 's:.*PLATFORM_FUNCTION_FILE.*:source "$(DESTDIR)$(LIBDIR)/password-store/platform.sh":' src/password-store.sh > "$(DESTDIR)$(BINDIR)/pass"
-	@chmod 0755 "$(DESTDIR)$(BINDIR)/pass"
-else
-install: install-common
-	@install -v -d "$(DESTDIR)$(BINDIR)/"
-	sed '/PLATFORM_FUNCTION_FILE/d' src/password-store.sh > "$(DESTDIR)$(BINDIR)/pass"
-	@chmod 0755 "$(DESTDIR)$(BINDIR)/pass"
-endif
+	@install -v -d "$(MANDIR)/pw/"
+	@install -m 0644 -v man/pw.1 "$(MANDIR)/pw/pw.1"
 
 uninstall:
 	@rm -vrf \
-		"$(DESTDIR)$(BINDIR)/pass" \
-		"$(DESTDIR)$(LIBDIR)/password-store/" \
-		"$(DESTDIR)$(MANDIR)/man1/pass.1" \
-		"$(BASHCOMP_PATH)/pass" \
-		"$(ZSHCOMP_PATH)/_pass" \
-		"$(FISHCOMP_PATH)/pass.fish"
-	@rmdir "$(DESTDIR)$(LIBDIR)/password-store/" 2>/dev/null || true
+		"$(BINDIR)/pw" \
+		"$(LIBDIR)/pw" \
+		"$(MANDIR)/man1/pw.1" \
+	@rmdir "$(LIBDIR)/pw" 2>/dev/null || true
 
-TESTS = $(sort $(wildcard tests/t[0-9][0-9][0-9][0-9]-*.sh))
+TESTS = $(sort $(wildcard tests/t*.t))
 
 test: $(TESTS)
 
 $(TESTS):
-	@$@ $(PASS_TEST_OPTS)
+	@$@ $(PW_TEST_OPTS)
 
 clean:
 	$(RM) -rf tests/test-results/ tests/trash\ directory.*/ tests/gnupg/random_seed
 
-.PHONY: install uninstall install-common test clean $(TESTS)
+.PHONY: install uninstall test clean $(TESTS)
