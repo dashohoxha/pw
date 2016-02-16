@@ -1,0 +1,315 @@
+pw(1) -- simple password manager
+================================
+
+## SYNOPSIS
+
+   `pw` [-a <ARCHIVE>] [<COMMAND>] [<ARGS>...] [<OPTIONS>...]
+
+
+## DESCRIPTION
+
+   **pw** is a simple password manager that keeps passwords inside a
+   gpg2(1) encrypted *tgz* archive. The content of the archive is a
+   directory tree with a file for each password entry.  The first line
+   of the file is the password, and the rest can optionally be
+   additional or related info. The **pw** utility provides commands
+   for manipulating the passwords, allowing the user to add, remove,
+   edit, generate passwords etc.
+
+
+## COMMANDS
+
+* `ls` [<path>] [`-t`,`--tree`]
+
+    List password files, optionally as a tree.
+
+* [`get`] <pwfile>
+
+    Copy to clipboard the password (it will be cleared in  seconds).
+
+* `show` <pwfile>
+
+    Print out the password contained in the given file.
+
+* `gen` <pwfile> [<length>] [`-n`,`--no-symbols`] [`-i`,`--in-place` | `-f`,`--force`]
+
+    Generate a new password with optionally no symbols.  Put it on the
+    clipboard and clear board after seconds.  Prompt before
+    overwriting existing password unless forced.  Optionally replace
+    only the first line of an existing file with a new password.
+
+* `set` <pwfile> [`-e`,`--echo` | `-m`,`--multiline`] [`-f`,`--force`]
+
+    Insert new password. Optionally, echo the password back to the
+    console during entry. Or, optionally, the entry may be multiline.
+    Prompt before overwriting existing password unless forced.
+
+* `edit` <pwfile>
+
+    Edit or add a password file using vi.
+
+* `find` <pattern> [`-t`,`--tree`]
+
+    List pwfiles that match pattern, optionally in tree format.
+
+* `grep` <search-string>
+
+    Search for password files containing search-string when decrypted.
+
+* `rm` <pwfile> [`-r`,`--recursive`] [`-f`,`--force`]
+
+    Remove existing password file or directory, optionally forcefully.
+
+* `mv` <old-path> <new-path> [`-f`,`--force`]
+
+    Renames or moves old-path to new-path, optionally forcefully.
+
+* `cp` <old-path> <new-path> [`-f`,`--force`]
+
+    Copies <old-path> to <new-path>, optionally forcefully.
+
+* `log` [-10]
+
+    List the history of (last 10) changes.
+
+* `pass`,`set-passphrase`
+
+    Set the passphrase of the archive (gpg symmetric encryption).
+
+* `keys`,`set-keys` [<gpg-key>...]
+
+    Set the gpg key(s) of the archive (asymmetric encryption).
+
+    **Note:** Symmetric and asymmetric encryption are exclusive;
+    either you use a passphrase (for symmetric encryption), or gpg
+    key(s) (for asymmetric encryption).
+
+* `export` <dirpath>
+
+    Export the content of the archive to the given directory.
+
+* `import` <dirpath>
+
+    Import the content of the archive from the given directory.
+
+* `help`
+
+    Show this help text.
+
+* `version`
+
+    Show version information.
+
+
+## FILES
+
+   `~/.pw/`
+          The default `pw` directory.
+
+   `~/.pw/pw.tgz.gpg`
+          The default archive.
+
+   `~/.pw/config.sh`
+          The configuration file.
+
+
+## ENVIRONMENT VARIABLES
+
+   `PW_DIR`
+          Overrides the default `pw` directory.
+
+   `EDITOR`
+          The location of the text editor used by edit.
+
+
+## SIMPLE EXAMPLE
+
+   Some basic usage is demonstrated on the examples below.
+
+   user@MacBookPro:~/test$ `pw`
+
+    Creating a new archive '/home/user/.pw/pw.tgz'.
+    Enter new passphrase for archive '/home/user/.pw/pw.tgz': 
+    Retype the passphrase for archive '/home/user/.pw/pw.tgz': 
+    Commands:
+        gen, set, ls, get, show, edit, find, grep, rm, mv, cp, log, help
+    Type q to quit, p to change the passphrase.
+    pw> 
+
+   pw> `set test1`
+
+    Enter password for test1: 
+    Retype password for test1: 
+
+   pw> `get test1`
+
+    Password of test1 sent to clipboard. Will clear in 45 seconds.
+
+   pw> `show test1`
+
+    passw1
+
+   pw> `test1`
+
+    Password of test1 sent to clipboard. Will clear in 45 seconds.
+
+   pw> `ls test1`
+
+    passw1
+
+   pw> `set test2/test3`
+
+    Enter password for test2/test3: 
+    Retype password for test2/test3: 
+
+   pw> `gen test2/test4`
+
+    Password of test2/test4 sent to clipboard. Will clear in 45 seconds.
+
+   pw> `show test2/test4`
+
+    ;oOd~myTkx4_'wp.Mw&O.PmJNSpDoG
+
+   pw> `ls`
+
+    test2/test3
+    test2/test4
+    test1
+
+   pw> `ls -t`
+
+    ├── test1
+    └── test2
+        ├── test3
+        └── test4
+
+   pw> `ls test2`
+
+    test2/test3
+    test2/test4
+
+   pw> `find test3`
+
+    test2/test3
+
+   pw> `show test2/test3`
+
+    passw3
+
+   pw> `log`
+
+    2 minutes ago: Add given password for test1.
+    2 minutes ago: Add given password for test2/test3.
+    2 minutes ago: Add generated password for test2/test4.
+
+   pw> `q`
+
+   user@MacBookPro:~/test$
+
+
+## ADVANCED EXAMPLE
+
+   Some more advanced features are shown in the examples below.
+
+   user@MacBookPro:~/test$ `cp -a ~/.pw/ ~/.passw`
+
+   user@MacBookPro:~/test$ `ls -al ~/.passw`
+
+    total 24
+    drwx------  2 user user 4096 Feb 16 22:18 .
+    drwxr-xr-x 73 user user 4096 Feb 16 22:31 ..
+    -rw-------  1 user user  250 Feb 16 21:45 config.sh
+    -rw-------  1 user user 8753 Feb 16 22:18 pw.tgz.gpg
+
+   user@MacBookPro:~/test$ `mv ~/.passw/pw.tgz.gpg ~/.passw/archive1.tgz.gpg`
+
+   user@MacBookPro:~/test$ `export PW_DIR=~/.passw`
+
+   user@MacBookPro:~/test$ `echo $PW_DIR`
+
+    /home/user/.passw
+
+   user@MacBookPro:~/test$ `pw -a archive1 ls --tree`
+
+    Passphrase for archive '/home/user/.passw/archive1.tgz': 
+    ├── test1
+    └── test2
+        ├── test3
+        └── test4
+
+   user@MacBookPro:~/test$ `pw -a archive1 set "test2/test 5" --multiline`
+
+    Passphrase for archive '/home/user/.passw/archive1.tgz': 
+    Enter contents of test2/test 5 and press Ctrl+D when finished:
+
+    password
+    line 2
+    line 3
+
+   user@MacBookPro:~/test$ `pw -a archive1 show "test2/test 5"`
+
+    Passphrase for archive '/home/user/.passw/archive1.tgz': 
+    password
+    line 2
+    line 3
+
+   user@MacBookPro:~/test$ `pw -a archive1 gen "test2/test 5" 40 --no-symbols --in-place`
+
+    Passphrase for archive '/home/user/.passw/archive1.tgz': 
+    Password of test2/test 5 sent to clipboard. Will clear in 45 seconds.
+
+   user@MacBookPro:~/test$ `pw -a archive1 show "test2/test 5"`
+
+    Passphrase for archive '/home/user/.passw/archive1.tgz': 
+    3jXaVyxixcfnkYRR3xBr70kGxKK0I83LCmaMGeVc
+    line 2
+    line 3
+
+   user@MacBookPro:~/test$ `sed -i ~/.passw/config.sh -e "/ARCHIVE=/c ARCHIVE=archive1"`
+
+   user@MacBookPro:~/test$ `PW_DIR=~/.passw pw ls test2`
+
+    Passphrase for archive '/home/user/.passw/archive1.tgz': 
+    test2/test3
+    test2/test4
+    test2/test 5
+
+   user@MacBookPro:~/test$ `pw set-passphrase`
+
+    Passphrase for archive '/home/user/.passw/archive1.tgz': 
+    Enter new passphrase for archive '/home/user/.passw/archive1.tgz': 
+    Retype the passphrase for archive '/home/user/.passw/archive1.tgz': 
+
+   user@MacBookPro:~/test$ `pw set-keys CF90C77B D774A374 EB7D54A8`
+
+    Passphrase for archive '/home/user/.passw/archive1.tgz': 
+
+
+## AUTHOR
+
+   `pw` was written by Dashamir Hoxha (userhoxha@gmail.com). The code
+   is on GitHub at https://github.com/dashohoxha/pw.  `pw` started as
+   a fork of `pass` ⟨http://www.passwordstore.org/⟩, written by Jason
+   A. Donenfeld ⟨Jason@zx2c4.com⟩.
+
+## COPYLEFT
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2 of the
+   License, or (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Soft‐ ware
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+   02110-1301, USA.
+
+## SEE ALSO
+
+   gpg2(1), pwgen(1), xclip(1).
+
