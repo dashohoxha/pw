@@ -12,21 +12,13 @@ allowing the user to add, remove, edit, generate passwords etc.
 Please see the man page for documentation and examples:
 http://dashohoxha.github.io/pw/man/
 
-It started by forking **pass** (http://www.passwordstore.org/).
+It started by forking **[pass](http://www.passwordstore.org/)**.
 
 Depends on:
-- bash
-  http://www.gnu.org/software/bash/
-- GnuPG2
-  http://www.gnupg.org/
-- git
-  http://www.git-scm.com/
-- xclip
-  http://sourceforge.net/projects/xclip/
-- pwgen
-  http://sourceforge.net/projects/pwgen/
-- tree >= 1.7.0
-  http://mama.indstate.edu/users/ice/tree/
-- GNU getopt
-  http://www.kernel.org/pub/linux/utils/util-linux/
-  http://software.frodo.looijaard.name/getopt/
+- [bash](http://www.gnu.org/software/bash/)
+- [GnuPG2](http://www.gnupg.org/)
+- [git](http://www.git-scm.com/)
+- [xclip](http://sourceforge.net/projects/xclip/)
+- [pwgen](http://sourceforge.net/projects/pwgen/)
+- [tree](http://mama.indstate.edu/users/ice/tree/) >= 1.7.0
+- [GNU getopt](http://software.frodo.looijaard.name/getopt/)
