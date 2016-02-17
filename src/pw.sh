@@ -212,7 +212,7 @@ cmd_version() {
         ====================================
         = pw: a simple password manager    =
         =                                  =
-        =               v0.9               =
+        =               v1.0               =
         =                                  =
         = https://github.com/dashohoxha/pw =
         ====================================
