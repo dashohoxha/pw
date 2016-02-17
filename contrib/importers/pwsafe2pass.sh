@@ -1,9 +1,22 @@
 #!/usr/bin/env bash
+# Copyright (C) 2016 Dashamir Hoxha <dashohoxha@gmail.com>.
 # Copyright (C) 2013 Tom Hendrikx <tom@whyscream.net>. All Rights Reserved.
 # This file is licensed under the GPLv2+. Please see COPYING for more information.
 
-export=$1
+usage() {
+    echo -e "\n Usage: $(basename $0) <pwsafe-export> <pw-archive> \n"
+    exit 1
+}
 
+[[ -z $1 ]] && usage
+[[ -z $2 ]] && usage
+export=$1
+ARCHIVE=$2
+
+# create a tmp dir
+TEMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/pw.XXXXXXXXXXXXX")"
+
+echo -e "\nExporting from pwsafe:\n"
 IFS="	" # tab character
 cat "$export" | while read uuid group name login passwd notes; do
      test "$uuid" = "# passwordsafe version 2.0 database" && continue
@@ -24,7 +37,13 @@ cat "$export" | while read uuid group name login passwd notes; do
      test -n "$passwd" && entry="${entry}pass: $passwd\n"
      test -n "$group" && entry="${entry}group: $group\n"
 
-     echo Adding entry for $name:
-     echo -e $entry | pass insert --multiline --force "$name"
-     test $? && echo "Added!"
+     echo $name:
+     mkdir -p "$(dirname "$TEMPDIR/$name")"
+     echo -e $entry > "$TEMPDIR/$name"
 done
+
+echo -e "\nImporting to pw:\n"
+pw -a $ARCHIVE import $TEMPDIR
+
+# cleanup
+rm -rf $TEMPDIR
