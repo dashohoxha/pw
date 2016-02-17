@@ -2,39 +2,36 @@
 # Copyright (C) 2016 Dashamir Hoxha <dashohoxha@gmail.com>. All Rights Reserved.
 # This file is licensed under the GPLv2+. Please see COPYING for more information.
 
-pw=$(which pw)
-PREFIX="${PASSWORD_STORE_DIR:-$HOME/.password-store}"
-
 usage() {
-    echo "
-Usage: $0 [-a <archive>]
-"
+    echo -e "\n Usage: $(basename $0) <pw-archive> \n"
     exit 1
 }
-get_passphrase() {
-    read -r -p "Enter the passphrase of the pw archive: " -s passphrase || exit 1
-    [[ -t 0 ]] && echo
-}
-get_options() {
-    while true; do
-        case $1 in
-            -h|--help) usage ;;
-            -a) archive=$2; shift 2 ;;
-            *)  break ;;
-        esac
-    done
-}
+
+# get the pw archive
+[[ -z $1 ]] && usage
+ARCHIVE=$1
+
+# get a list of password files from pass
 list_paths() {
+    local PREFIX="${PASSWORD_STORE_DIR:-$HOME/.password-store}"
+
     find $PREFIX -name '.git' -prune -or -type f \
         | sed -e '/\.gpg-id$/d' -e "s#$PREFIX/##" -e 's/\.gpg$//'
 }
 
-get_options "$@"
-get_passphrase
-[[ -n $archive ]] && pw="$pw -a $archive"
+# create a tmp dir
+TEMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/pw.XXXXXXXXXXXXX")"
 
+echo -e "\nExtracting from pass:\n"
 list_paths | while read path; do
     [[ -z "$path" ]] && continue
     echo "$path"
-    { echo "$passphrase"; pass show "$path"; } | $pw set "$path" --multiline --force >/dev/null
+    mkdir -p "$(dirname "$TEMPDIR/$path")"
+    pass show "$path" | cat > "$TEMPDIR/$path"
 done
+
+echo -e "\nImporting to pw:\n"
+pw -a $ARCHIVE import $TEMPDIR
+
+# cleanup
+rm -rf $TEMPDIR
