@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' value='text/html;charset=utf8'>
+  <meta name='generator' value='Ronn/v0.7.3 (http://github.com/rtomayko/ronn/tree/0.7.3)'>
+  <title>pw(1) - simple password manager</title>
+  <style type='text/css' media='all'>
+  /* style: man */
+  body#manpage {margin:0}
+  .mp {max-width:100ex;padding:0 9ex 1ex 4ex}
+  .mp p,.mp pre,.mp ul,.mp ol,.mp dl {margin:0 0 20px 0}
+  .mp h2 {margin:10px 0 0 0}
+  .mp > p,.mp > pre,.mp > ul,.mp > ol,.mp > dl {margin-left:8ex}
+  .mp h3 {margin:0 0 0 4ex}
+  .mp dt {margin:0;clear:left}
+  .mp dt.flush {float:left;width:8ex}
+  .mp dd {margin:0 0 0 9ex}
+  .mp h1,.mp h2,.mp h3,.mp h4 {clear:left}
+  .mp pre {margin-bottom:20px}
+  .mp pre+h2,.mp pre+h3 {margin-top:22px}
+  .mp h2+pre,.mp h3+pre {margin-top:5px}
+  .mp img {display:block;margin:auto}
+  .mp h1.man-title {display:none}
+  .mp,.mp code,.mp pre,.mp tt,.mp kbd,.mp samp,.mp h3,.mp h4 {font-family:monospace;font-size:14px;line-height:1.42857142857143}
+  .mp h2 {font-size:16px;line-height:1.25}
+  .mp h1 {font-size:20px;line-height:2}
+  .mp {text-align:justify;background:#fff}
+  .mp,.mp code,.mp pre,.mp pre code,.mp tt,.mp kbd,.mp samp {color:#131211}
+  .mp h1,.mp h2,.mp h3,.mp h4 {color:#030201}
+  .mp u {text-decoration:underline}
+  .mp code,.mp strong,.mp b {font-weight:bold;color:#131211}
+  .mp em,.mp var {font-style:italic;color:#232221;text-decoration:none}
+  .mp a,.mp a:link,.mp a:hover,.mp a code,.mp a pre,.mp a tt,.mp a kbd,.mp a samp {color:#0000ff}
+  .mp b.man-ref {font-weight:normal;color:#434241}
+  .mp pre {padding:0 4ex}
+  .mp pre code {font-weight:normal;color:#434241}
+  .mp h2+pre,h3+pre {padding-left:0}
+  ol.man-decor,ol.man-decor li {margin:3px 0 10px 0;padding:0;float:left;width:33%;list-style-type:none;text-transform:uppercase;color:#999;letter-spacing:1px}
+  ol.man-decor {width:100%}
+  ol.man-decor li.tl {text-align:left}
+  ol.man-decor li.tc {text-align:center;letter-spacing:4px}
+  ol.man-decor li.tr {text-align:right;float:right}
+  </style>
+  <style type='text/css' media='all'>
+  /* style: toc */
+  #man .man-navigation {display: block !important;position: fixed;top: 0;left: 113ex;height: 100%;width: 100%;padding: 48px 0 0 0;border-left: 1px solid #dbdbdb;background: #eee}
+  #man .man-navigation a,#man .man-navigation a:hover,#man .man-navigation a:link,#man .man-navigation a:visited {display: block;margin: 0;padding: 5px 2px 5px 30px;color: #444;text-decoration: none}
+  #man .man-navigation a:hover {color: #666;text-decoration: underline}
+  </style>
+  <style type='text/css' media='all'>
+  /* style: 80c */
+  .mp {max-width:86ex}
+   
+  .man-navigation {left:101ex}
+  </style>
+  <style type='text/css' media='all'>
+  /* style: dark */
+  .mp,body#manpage {background:#080706;color:#888}
+  .mp,.mp code,.mp pre,.mp pre code,.mp tt,.mp kbd,.mp samp {color:#aaa}
+  .mp h1,.mp h2,.mp h3,.mp h4 {color:#fff}
+  .man-decor,.man-decor ol li {color:#666}
+  .mp code,.mp strong,.mp b {color:#fff}
+  .mp em,.mp var,.mp u {color:#ddd}
+  .mp pre code {color:#ddd}
+  .mp a,.mp a:link,.mp a:hover,.mp a code,.mp a pre,.mp a tt,.mp a kbd,.mp a samp {color:#fff}
+  </style>
+</head>
+<!--
+  The following styles are deprecated and will be removed at some point:
+  div#man, div#man ol.man, div#man ol.head, div#man ol.man.
+
+  The .man-page, .man-decor, .man-head, .man-foot, .man-title, and
+  .man-navigation should be used instead.
+-->
+<body id='manpage'>
+  <div class='mp' id='man'>
+
+  <div class='man-navigation' style='display:none'>
+    <a href="#NAME">NAME</a>
+    <a href="#SYNOPSIS">SYNOPSIS</a>
+    <a href="#DESCRIPTION">DESCRIPTION</a>
+    <a href="#COMMANDS">COMMANDS</a>
+    <a href="#FILES">FILES</a>
+    <a href="#ENVIRONMENT-VARIABLES">ENVIRONMENT VARIABLES</a>
+    <a href="#SIMPLE-EXAMPLE">SIMPLE EXAMPLE</a>
+    <a href="#ADVANCED-EXAMPLE">ADVANCED EXAMPLE</a>
+    <a href="#AUTHOR">AUTHOR</a>
+    <a href="#COPYLEFT">COPYLEFT</a>
+    <a href="#SEE-ALSO">SEE ALSO</a>
+  </div>
+
+  <ol class='man-decor man-head man head'>
+    <li class='tl'>pw(1)</li>
+    <li class='tc'>Password Manager</li>
+    <li class='tr'>pw(1)</li>
+  </ol>
+
+  <h2 id="NAME">NAME</h2>
+<p class="man-name">
+  <code>pw</code> - <span class="man-whatis">simple password manager</span>
+</p>
+
+<h2 id="SYNOPSIS">SYNOPSIS</h2>
+
+<p>   <code>pw</code> [-a <var>ARCHIVE</var>] [<var>COMMAND</var>] [<var>ARGS</var>...] [<var>OPTIONS</var>...]</p>
+
+<h2 id="DESCRIPTION">DESCRIPTION</h2>
+
+<p>   <strong>pw</strong> is a simple password manager that keeps passwords inside a
+   <span class="man-ref">gpg2<span class="s">(1)</span></span> encrypted <em>tgz</em> archive. The content of the archive is a
+   directory tree with a file for each password entry.  The first line
+   of the file is the password, and the rest can optionally be
+   additional or related info. The <strong>pw</strong> utility provides commands
+   for manipulating the passwords, allowing the user to add, remove,
+   edit, generate passwords etc.</p>
+
+<h2 id="COMMANDS">COMMANDS</h2>
+
+<ul>
+<li><p><code>ls</code> [<var>path</var>] [<code>-t</code>,<code>--tree</code>]</p>
+
+<p>  List password files, optionally as a tree.</p></li>
+<li><p>[<code>get</code>] <var>pwfile</var></p>
+
+<p>  Copy to clipboard the password (it will be cleared in a few seconds).</p></li>
+<li><p><code>show</code> <var>pwfile</var></p>
+
+<p>  Print out the password contained in the given file.</p></li>
+<li><p><code>gen</code> <var>pwfile</var> [<var>length</var>] [<code>-n</code>,<code>--no-symbols</code>] [<code>-i</code>,<code>--in-place</code> | <code>-f</code>,<code>--force</code>]</p>
+
+<p>  Generate a new password with optionally no symbols.  Put it on the
+  clipboard and clear board after a few seconds.  Prompt before
+  overwriting existing password unless forced.  Optionally replace
+  only the first line of an existing file with a new password.</p></li>
+<li><p><code>set</code> <var>pwfile</var> [<code>-e</code>,<code>--echo</code> | <code>-m</code>,<code>--multiline</code>] [<code>-f</code>,<code>--force</code>]</p>
+
+<p>  Insert new password. Optionally, echo the password back to the
+  console during entry. Or, optionally, the entry may be multiline.
+  Prompt before overwriting existing password unless forced.</p></li>
+<li><p><code>edit</code> <var>pwfile</var></p>
+
+<p>  Edit or add a password file using vi.</p></li>
+<li><p><code>find</code> <var>pattern</var> [<code>-t</code>,<code>--tree</code>]</p>
+
+<p>  List pwfiles that match pattern, optionally in tree format.</p></li>
+<li><p><code>grep</code> <var>search-string</var></p>
+
+<p>  Search for password files containing <var>search-string</var> when decrypted.</p></li>
+<li><p><code>rm</code> <var>pwfile</var> [<code>-r</code>,<code>--recursive</code>] [<code>-f</code>,<code>--force</code>]</p>
+
+<p>  Remove existing password file or directory, optionally forcefully.</p></li>
+<li><p><code>mv</code> <var>old-path</var> <var>new-path</var> [<code>-f</code>,<code>--force</code>]</p>
+
+<p>  Rename or move <var>old-path</var> to <var>new-path</var>, optionally forcefully.</p></li>
+<li><p><code>cp</code> <var>old-path</var> <var>new-path</var> [<code>-f</code>,<code>--force</code>]</p>
+
+<p>  Copy <var>old-path</var> to <var>new-path</var>, optionally forcefully.</p></li>
+<li><p><code>log</code> [-10]</p>
+
+<p>  List the history of (last 10) changes.</p></li>
+<li><p><code>pass</code>,<code>set-passphrase</code></p>
+
+<p>  Set the passphrase of the archive (gpg symmetric encryption).</p></li>
+<li><p><code>keys</code>,<code>set-keys</code> [<var>gpg-key</var>...]</p>
+
+<p>  Set the gpg key(s) of the archive (asymmetric encryption).</p>
+
+<p>  <strong>Note:</strong> Symmetric and asymmetric encryption are exclusive;
+  either you use a passphrase (for symmetric encryption), or gpg
+  key(s) (for asymmetric encryption).</p></li>
+<li><p><code>export</code> <var>dirpath</var></p>
+
+<p>  Export the content of the archive to the given directory.</p></li>
+<li><p><code>import</code> <var>dirpath</var></p>
+
+<p>  Import the content of the archive from the given directory.</p></li>
+<li><p><code>help</code></p>
+
+<p>  Show this help text.</p></li>
+<li><p><code>version</code></p>
+
+<p>  Show version information.</p></li>
+</ul>
+
+
+<h2 id="FILES">FILES</h2>
+
+<p>   <code>~/.pw/</code></p>
+
+<pre><code>      The default pw directory.
+</code></pre>
+
+<p>   <code>~/.pw/pw.tgz.gpg</code></p>
+
+<pre><code>      The default archive.
+</code></pre>
+
+<p>   <code>~/.pw/config.sh</code></p>
+
+<pre><code>      The configuration file.
+</code></pre>
+
+<h2 id="ENVIRONMENT-VARIABLES">ENVIRONMENT VARIABLES</h2>
+
+<p>   <code>PW_DIR</code></p>
+
+<pre><code>      Overrides the default pw directory.
+</code></pre>
+
+<p>   <code>EDITOR</code></p>
+
+<pre><code>      The location of the text editor used by edit.
+</code></pre>
+
+<h2 id="SIMPLE-EXAMPLE">SIMPLE EXAMPLE</h2>
+
+<p>   Some basic usage is demonstrated on the examples below.</p>
+
+<p>   user@laptop:~$ <code>pw</code></p>
+
+<pre><code>Creating a new archive '/home/user/.pw/pw.tgz'.
+Enter new passphrase for archive '/home/user/.pw/pw.tgz': 
+Retype the passphrase for archive '/home/user/.pw/pw.tgz': 
+Commands:
+    gen, set, ls, get, show, edit, find, grep, rm, mv, cp, log, help
+Type q to quit, p to change the passphrase.
+pw&gt; 
+</code></pre>
+
+<p>   pw> <code>set test1</code></p>
+
+<pre><code>Enter password for test1: 
+Retype password for test1: 
+</code></pre>
+
+<p>   pw> <code>get test1</code></p>
+
+<pre><code>Password of test1 sent to clipboard. Will clear in 45 seconds.
+</code></pre>
+
+<p>   pw> <code>show test1</code></p>
+
+<pre><code>passw1
+</code></pre>
+
+<p>   pw> <code>test1</code></p>
+
+<pre><code>Password of test1 sent to clipboard. Will clear in 45 seconds.
+</code></pre>
+
+<p>   pw> <code>ls test1</code></p>
+
+<pre><code>passw1
+</code></pre>
+
+<p>   pw> <code>set test2/test3</code></p>
+
+<pre><code>Enter password for test2/test3: 
+Retype password for test2/test3: 
+</code></pre>
+
+<p>   pw> <code>gen test2/test4</code></p>
+
+<pre><code>Password of test2/test4 sent to clipboard. Will clear in 45 seconds.
+</code></pre>
+
+<p>   pw> <code>show test2/test4</code></p>
+
+<pre><code>;oOd~myTkx4_'wp.Mw&amp;O.PmJNSpDoG
+</code></pre>
+
+<p>   pw> <code>ls</code></p>
+
+<pre><code>test2/test3
+test2/test4
+test1
+</code></pre>
+
+<p>   pw> <code>ls -t</code></p>
+
+<pre><code>├── test1
+└── test2
+    ├── test3
+    └── test4
+</code></pre>
+
+<p>   pw> <code>ls test2</code></p>
+
+<pre><code>test2/test3
+test2/test4
+</code></pre>
+
+<p>   pw> <code>find test3</code></p>
+
+<pre><code>test2/test3
+</code></pre>
+
+<p>   pw> <code>show test2/test3</code></p>
+
+<pre><code>passw3
+</code></pre>
+
+<p>   pw> <code>log</code></p>
+
+<pre><code>2 minutes ago: Add given password for test1.
+2 minutes ago: Add given password for test2/test3.
+2 minutes ago: Add generated password for test2/test4.
+</code></pre>
+
+<p>   pw> <code>q</code></p>
+
+<p>   user@laptop:~$</p>
+
+<h2 id="ADVANCED-EXAMPLE">ADVANCED EXAMPLE</h2>
+
+<p>   Some more advanced features are shown in the examples below.</p>
+
+<p>   user@laptop:~$ <code>cp -a ~/.pw/ ~/.passw</code></p>
+
+<p>   user@laptop:~$ <code>ls -al ~/.passw</code></p>
+
+<pre><code>total 24
+drwx------  2 user user 4096 Feb 16 22:18 .
+drwxr-xr-x 73 user user 4096 Feb 16 22:31 ..
+-rw-------  1 user user  250 Feb 16 21:45 config.sh
+-rw-------  1 user user 8753 Feb 16 22:18 pw.tgz.gpg
+</code></pre>
+
+<p>   user@laptop:~$ <code>mv ~/.passw/pw.tgz.gpg ~/.passw/archive1.tgz.gpg</code></p>
+
+<p>   user@laptop:~$ <code>export PW_DIR=~/.passw</code></p>
+
+<p>   user@laptop:~$ <code>echo $PW_DIR</code></p>
+
+<pre><code>/home/user/.passw
+</code></pre>
+
+<p>   user@laptop:~$ <code>pw -a archive1 ls --tree</code></p>
+
+<pre><code>Passphrase for archive '/home/user/.passw/archive1.tgz': 
+├── test1
+└── test2
+    ├── test3
+    └── test4
+</code></pre>
+
+<p>   user@laptop:~$ <code>pw -a archive1 set "test2/test 5" --multiline</code></p>
+
+<pre><code>Passphrase for archive '/home/user/.passw/archive1.tgz': 
+Enter contents of test2/test 5 and press Ctrl+D when finished:
+
+password
+line 2
+line 3
+</code></pre>
+
+<p>   user@laptop:~$ <code>pw -a archive1 show "test2/test 5"</code></p>
+
+<pre><code>Passphrase for archive '/home/user/.passw/archive1.tgz': 
+password
+line 2
+line 3
+</code></pre>
+
+<p>   user@laptop:~$ <code>pw -a archive1 gen "test2/test 5" 40 --no-symbols --in-place</code></p>
+
+<pre><code>Passphrase for archive '/home/user/.passw/archive1.tgz': 
+Password of test2/test 5 sent to clipboard. Will clear in 45 seconds.
+</code></pre>
+
+<p>   user@laptop:~$ <code>pw -a archive1 show "test2/test 5"</code></p>
+
+<pre><code>Passphrase for archive '/home/user/.passw/archive1.tgz': 
+3jXaVyxixcfnkYRR3xBr70kGxKK0I83LCmaMGeVc
+line 2
+line 3
+</code></pre>
+
+<p>   user@laptop:~$ <code>sed -i ~/.passw/config.sh -e "/ARCHIVE=/c ARCHIVE=archive1"</code></p>
+
+<p>   user@laptop:~$ <code>PW_DIR=~/.passw pw ls test2</code></p>
+
+<pre><code>Passphrase for archive '/home/user/.passw/archive1.tgz': 
+test2/test3
+test2/test4
+test2/test 5
+</code></pre>
+
+<p>   user@laptop:~$ <code>pw set-passphrase</code></p>
+
+<pre><code>Passphrase for archive '/home/user/.passw/archive1.tgz': 
+Enter new passphrase for archive '/home/user/.passw/archive1.tgz': 
+Retype the passphrase for archive '/home/user/.passw/archive1.tgz': 
+</code></pre>
+
+<p>   user@laptop:~$ <code>pw set-keys CF90C77B D774A374 EB7D54A8</code></p>
+
+<pre><code>Passphrase for archive '/home/user/.passw/archive1.tgz': 
+</code></pre>
+
+<p>   user@laptop:~$ <code>pw set-keys</code></p>
+
+<pre><code>gpg (GnuPG) 2.0.22; Copyright (C) 2013 Free Software Foundation, Inc.
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+
+gpg: keyring `/home/user/.passw/.gnupg/secring.gpg' created
+gpg: keyring `/home/user/.passw/.gnupg/pubring.gpg' created
+Please select what kind of key you want:
+   (1) RSA and RSA (default)
+   (2) DSA and Elgamal
+   (3) DSA (sign only)
+   (4) RSA (sign only)
+Your selection? 
+</code></pre>
+
+<h2 id="AUTHOR">AUTHOR</h2>
+
+<p>   <code>pw</code> was written by Dashamir Hoxha (dashohoxha@gmail.com). The code
+   is on GitHub at https://github.com/dashohoxha/pw.  <code>pw</code> started as
+   a fork of <code>pass</code> (http://www.passwordstore.org/), written by Jason
+   A. Donenfeld (Jason@zx2c4.com).</p>
+
+<h2 id="COPYLEFT">COPYLEFT</h2>
+
+<p>   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2 of the
+   License, or (at your option) any later version.</p>
+
+<p>   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.</p>
+
+<p>   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Soft‐ ware
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+   02110-1301, USA.</p>
+
+<h2 id="SEE-ALSO">SEE ALSO</h2>
+
+<p>   <code>gpg2</code>(1), <code>pwgen</code>(1), <code>xclip</code>(1).</p>
+
+
+  <ol class='man-decor man-foot man foot'>
+    <li class='tl'>dashohoxha</li>
+    <li class='tc'>February 2016</li>
+    <li class='tr'>pw(1)</li>
+  </ol>
+
+  </div>
+</body>
+</html>
