@@ -25,7 +25,7 @@ pw(1) -- simple password manager
 
 * [`get`] <pwfile>
 
-    Copy to clipboard the password (it will be cleared in  seconds).
+    Copy to clipboard the password (it will be cleared in a few seconds).
 
 * `show` <pwfile>
 
@@ -34,7 +34,7 @@ pw(1) -- simple password manager
 * `gen` <pwfile> [<length>] [`-n`,`--no-symbols`] [`-i`,`--in-place` | `-f`,`--force`]
 
     Generate a new password with optionally no symbols.  Put it on the
-    clipboard and clear board after seconds.  Prompt before
+    clipboard and clear board after a few seconds.  Prompt before
     overwriting existing password unless forced.  Optionally replace
     only the first line of an existing file with a new password.
 
@@ -54,7 +54,7 @@ pw(1) -- simple password manager
 
 * `grep` <search-string>
 
-    Search for password files containing search-string when decrypted.
+    Search for password files containing <search-string> when decrypted.
 
 * `rm` <pwfile> [`-r`,`--recursive`] [`-f`,`--force`]
 
@@ -62,11 +62,11 @@ pw(1) -- simple password manager
 
 * `mv` <old-path> <new-path> [`-f`,`--force`]
 
-    Renames or moves old-path to new-path, optionally forcefully.
+    Rename or move <old-path> to <new-path>, optionally forcefully.
 
 * `cp` <old-path> <new-path> [`-f`,`--force`]
 
-    Copies <old-path> to <new-path>, optionally forcefully.
+    Copy <old-path> to <new-path>, optionally forcefully.
 
 * `log` [-10]
 
@@ -104,7 +104,7 @@ pw(1) -- simple password manager
 ## FILES
 
    `~/.pw/`
-          The default `pw` directory.
+          The default pw directory.
 
    `~/.pw/pw.tgz.gpg`
           The default archive.
@@ -116,7 +116,7 @@ pw(1) -- simple password manager
 ## ENVIRONMENT VARIABLES
 
    `PW_DIR`
-          Overrides the default `pw` directory.
+          Overrides the default pw directory.
 
    `EDITOR`
           The location of the text editor used by edit.
@@ -126,7 +126,7 @@ pw(1) -- simple password manager
 
    Some basic usage is demonstrated on the examples below.
 
-   user@MacBookPro:~/test$ `pw`
+   user@laptop:~$ `pw`
 
     Creating a new archive '/home/user/.pw/pw.tgz'.
     Enter new passphrase for archive '/home/user/.pw/pw.tgz': 
@@ -204,16 +204,16 @@ pw(1) -- simple password manager
 
    pw> `q`
 
-   user@MacBookPro:~/test$
+   user@laptop:~$
 
 
 ## ADVANCED EXAMPLE
 
    Some more advanced features are shown in the examples below.
 
-   user@MacBookPro:~/test$ `cp -a ~/.pw/ ~/.passw`
+   user@laptop:~$ `cp -a ~/.pw/ ~/.passw`
 
-   user@MacBookPro:~/test$ `ls -al ~/.passw`
+   user@laptop:~$ `ls -al ~/.passw`
 
     total 24
     drwx------  2 user user 4096 Feb 16 22:18 .
@@ -221,15 +221,15 @@ pw(1) -- simple password manager
     -rw-------  1 user user  250 Feb 16 21:45 config.sh
     -rw-------  1 user user 8753 Feb 16 22:18 pw.tgz.gpg
 
-   user@MacBookPro:~/test$ `mv ~/.passw/pw.tgz.gpg ~/.passw/archive1.tgz.gpg`
+   user@laptop:~$ `mv ~/.passw/pw.tgz.gpg ~/.passw/archive1.tgz.gpg`
 
-   user@MacBookPro:~/test$ `export PW_DIR=~/.passw`
+   user@laptop:~$ `export PW_DIR=~/.passw`
 
-   user@MacBookPro:~/test$ `echo $PW_DIR`
+   user@laptop:~$ `echo $PW_DIR`
 
     /home/user/.passw
 
-   user@MacBookPro:~/test$ `pw -a archive1 ls --tree`
+   user@laptop:~$ `pw -a archive1 ls --tree`
 
     Passphrase for archive '/home/user/.passw/archive1.tgz': 
     ├── test1
@@ -237,7 +237,7 @@ pw(1) -- simple password manager
         ├── test3
         └── test4
 
-   user@MacBookPro:~/test$ `pw -a archive1 set "test2/test 5" --multiline`
+   user@laptop:~$ `pw -a archive1 set "test2/test 5" --multiline`
 
     Passphrase for archive '/home/user/.passw/archive1.tgz': 
     Enter contents of test2/test 5 and press Ctrl+D when finished:
@@ -246,51 +246,65 @@ pw(1) -- simple password manager
     line 2
     line 3
 
-   user@MacBookPro:~/test$ `pw -a archive1 show "test2/test 5"`
+   user@laptop:~$ `pw -a archive1 show "test2/test 5"`
 
     Passphrase for archive '/home/user/.passw/archive1.tgz': 
     password
     line 2
     line 3
 
-   user@MacBookPro:~/test$ `pw -a archive1 gen "test2/test 5" 40 --no-symbols --in-place`
+   user@laptop:~$ `pw -a archive1 gen "test2/test 5" 40 --no-symbols --in-place`
 
     Passphrase for archive '/home/user/.passw/archive1.tgz': 
     Password of test2/test 5 sent to clipboard. Will clear in 45 seconds.
 
-   user@MacBookPro:~/test$ `pw -a archive1 show "test2/test 5"`
+   user@laptop:~$ `pw -a archive1 show "test2/test 5"`
 
     Passphrase for archive '/home/user/.passw/archive1.tgz': 
     3jXaVyxixcfnkYRR3xBr70kGxKK0I83LCmaMGeVc
     line 2
     line 3
 
-   user@MacBookPro:~/test$ `sed -i ~/.passw/config.sh -e "/ARCHIVE=/c ARCHIVE=archive1"`
+   user@laptop:~$ `sed -i ~/.passw/config.sh -e "/ARCHIVE=/c ARCHIVE=archive1"`
 
-   user@MacBookPro:~/test$ `PW_DIR=~/.passw pw ls test2`
+   user@laptop:~$ `PW_DIR=~/.passw pw ls test2`
 
     Passphrase for archive '/home/user/.passw/archive1.tgz': 
     test2/test3
     test2/test4
     test2/test 5
 
-   user@MacBookPro:~/test$ `pw set-passphrase`
+   user@laptop:~$ `pw set-passphrase`
 
     Passphrase for archive '/home/user/.passw/archive1.tgz': 
     Enter new passphrase for archive '/home/user/.passw/archive1.tgz': 
     Retype the passphrase for archive '/home/user/.passw/archive1.tgz': 
 
-   user@MacBookPro:~/test$ `pw set-keys CF90C77B D774A374 EB7D54A8`
+   user@laptop:~$ `pw set-keys CF90C77B D774A374 EB7D54A8`
 
     Passphrase for archive '/home/user/.passw/archive1.tgz': 
 
+   user@laptop:~$ `pw set-keys`
+
+    gpg (GnuPG) 2.0.22; Copyright (C) 2013 Free Software Foundation, Inc.
+    This is free software: you are free to change and redistribute it.
+    There is NO WARRANTY, to the extent permitted by law.
+
+    gpg: keyring `/home/user/.passw/.gnupg/secring.gpg' created
+    gpg: keyring `/home/user/.passw/.gnupg/pubring.gpg' created
+    Please select what kind of key you want:
+       (1) RSA and RSA (default)
+       (2) DSA and Elgamal
+       (3) DSA (sign only)
+       (4) RSA (sign only)
+    Your selection? 
 
 ## AUTHOR
 
-   `pw` was written by Dashamir Hoxha (userhoxha@gmail.com). The code
+   `pw` was written by Dashamir Hoxha (dashohoxha@gmail.com). The code
    is on GitHub at https://github.com/dashohoxha/pw.  `pw` started as
-   a fork of `pass` ⟨http://www.passwordstore.org/⟩, written by Jason
-   A. Donenfeld ⟨Jason@zx2c4.com⟩.
+   a fork of `pass` (http://www.passwordstore.org/), written by Jason
+   A. Donenfeld (Jason@zx2c4.com).
 
 ## COPYLEFT
 
@@ -311,5 +325,5 @@ pw(1) -- simple password manager
 
 ## SEE ALSO
 
-   gpg2(1), pwgen(1), xclip(1).
+   `gpg2`(1), `pwgen`(1), `xclip`(1).
 

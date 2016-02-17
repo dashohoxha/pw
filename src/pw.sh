@@ -256,14 +256,14 @@ Commands and their options are listed below.
     grep search-string
         Search for password files containing search-string when decrypted.
 
-    rm [-r,--recursive] [-f,--force] pwfile
+    rm pwfile [-r,--recursive] [-f,--force]
         Remove existing password file or directory, optionally forcefully.
 
-    mv [-f,--force] old-path new-path
-        Renames or moves old-path to new-path, optionally forcefully.
+    mv old-path new-path [-f,--force]
+        Rename or move old-path to new-path, optionally forcefully.
 
-    cp [-f,--force] old-path new-path
-        Copies old-path to new-path, optionally forcefully.
+    cp old-path new-path [-f,--force]
+        Copy old-path to new-path, optionally forcefully.
 
     log [-10]
         List the history of (last 10) changes.

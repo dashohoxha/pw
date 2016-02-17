@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "PW" "1" "February 2016" "" ""
+.TH "PW" "1" "February 2016" "dashohoxha" "Password Manager"
 .
 .SH "NAME"
 \fBpw\fR \- simple password manager
@@ -24,7 +24,7 @@ List password files, optionally as a tree\.
 [\fBget\fR] \fIpwfile\fR
 .
 .IP
-Copy to clipboard the password (it will be cleared in seconds)\.
+Copy to clipboard the password (it will be cleared in a few seconds)\.
 .
 .IP "\(bu" 4
 \fBshow\fR \fIpwfile\fR
@@ -36,7 +36,7 @@ Print out the password contained in the given file\.
 \fBgen\fR \fIpwfile\fR [\fIlength\fR] [\fB\-n\fR,\fB\-\-no\-symbols\fR] [\fB\-i\fR,\fB\-\-in\-place\fR | \fB\-f\fR,\fB\-\-force\fR]
 .
 .IP
-Generate a new password with optionally no symbols\. Put it on the clipboard and clear board after seconds\. Prompt before overwriting existing password unless forced\. Optionally replace only the first line of an existing file with a new password\.
+Generate a new password with optionally no symbols\. Put it on the clipboard and clear board after a few seconds\. Prompt before overwriting existing password unless forced\. Optionally replace only the first line of an existing file with a new password\.
 .
 .IP "\(bu" 4
 \fBset\fR \fIpwfile\fR [\fB\-e\fR,\fB\-\-echo\fR | \fB\-m\fR,\fB\-\-multiline\fR] [\fB\-f\fR,\fB\-\-force\fR]
@@ -60,7 +60,7 @@ List pwfiles that match pattern, optionally in tree format\.
 \fBgrep\fR \fIsearch\-string\fR
 .
 .IP
-Search for password files containing search\-string when decrypted\.
+Search for password files containing \fIsearch\-string\fR when decrypted\.
 .
 .IP "\(bu" 4
 \fBrm\fR \fIpwfile\fR [\fB\-r\fR,\fB\-\-recursive\fR] [\fB\-f\fR,\fB\-\-force\fR]
@@ -72,13 +72,13 @@ Remove existing password file or directory, optionally forcefully\.
 \fBmv\fR \fIold\-path\fR \fInew\-path\fR [\fB\-f\fR,\fB\-\-force\fR]
 .
 .IP
-Renames or moves old\-path to new\-path, optionally forcefully\.
+Rename or move \fIold\-path\fR to \fInew\-path\fR, optionally forcefully\.
 .
 .IP "\(bu" 4
 \fBcp\fR \fIold\-path\fR \fInew\-path\fR [\fB\-f\fR,\fB\-\-force\fR]
 .
 .IP
-Copies \fIold\-path\fR to \fInew\-path\fR, optionally forcefully\.
+Copy \fIold\-path\fR to \fInew\-path\fR, optionally forcefully\.
 .
 .IP "\(bu" 4
 \fBlog\fR [\-10]
@@ -134,7 +134,7 @@ Show version information\.
 .
 .nf
 
-      The default `pw` directory\.
+      The default pw directory\.
 .
 .fi
 .
@@ -173,7 +173,7 @@ Show version information\.
 .
 .nf
 
-      Overrides the default `pw` directory\.
+      Overrides the default pw directory\.
 .
 .fi
 .
@@ -196,7 +196,7 @@ Show version information\.
 Some basic usage is demonstrated on the examples below\.
 .
 .P
-user@MacBookPro:~/test$ \fBpw\fR
+user@laptop:~$ \fBpw\fR
 .
 .IP "" 4
 .
@@ -410,16 +410,16 @@ pw> \fBlog\fR
 pw> \fBq\fR
 .
 .P
-user@MacBookPro:~/test$
+user@laptop:~$
 .
 .SH "ADVANCED EXAMPLE"
 Some more advanced features are shown in the examples below\.
 .
 .P
-user@MacBookPro:~/test$ \fBcp \-a ~/\.pw/ ~/\.passw\fR
+user@laptop:~$ \fBcp \-a ~/\.pw/ ~/\.passw\fR
 .
 .P
-user@MacBookPro:~/test$ \fBls \-al ~/\.passw\fR
+user@laptop:~$ \fBls \-al ~/\.passw\fR
 .
 .IP "" 4
 .
@@ -436,13 +436,13 @@ drwxr\-xr\-x 73 user user 4096 Feb 16 22:31 \.\.
 .IP "" 0
 .
 .P
-user@MacBookPro:~/test$ \fBmv ~/\.passw/pw\.tgz\.gpg ~/\.passw/archive1\.tgz\.gpg\fR
+user@laptop:~$ \fBmv ~/\.passw/pw\.tgz\.gpg ~/\.passw/archive1\.tgz\.gpg\fR
 .
 .P
-user@MacBookPro:~/test$ \fBexport PW_DIR=~/\.passw\fR
+user@laptop:~$ \fBexport PW_DIR=~/\.passw\fR
 .
 .P
-user@MacBookPro:~/test$ \fBecho $PW_DIR\fR
+user@laptop:~$ \fBecho $PW_DIR\fR
 .
 .IP "" 4
 .
@@ -455,7 +455,7 @@ user@MacBookPro:~/test$ \fBecho $PW_DIR\fR
 .IP "" 0
 .
 .P
-user@MacBookPro:~/test$ \fBpw \-a archive1 ls \-\-tree\fR
+user@laptop:~$ \fBpw \-a archive1 ls \-\-tree\fR
 .
 .IP "" 4
 .
@@ -472,7 +472,7 @@ Passphrase for archive \'/home/user/\.passw/archive1\.tgz\':
 .IP "" 0
 .
 .P
-user@MacBookPro:~/test$ \fBpw \-a archive1 set "test2/test 5" \-\-multiline\fR
+user@laptop:~$ \fBpw \-a archive1 set "test2/test 5" \-\-multiline\fR
 .
 .IP "" 4
 .
@@ -490,7 +490,7 @@ line 3
 .IP "" 0
 .
 .P
-user@MacBookPro:~/test$ \fBpw \-a archive1 show "test2/test 5"\fR
+user@laptop:~$ \fBpw \-a archive1 show "test2/test 5"\fR
 .
 .IP "" 4
 .
@@ -506,7 +506,7 @@ line 3
 .IP "" 0
 .
 .P
-user@MacBookPro:~/test$ \fBpw \-a archive1 gen "test2/test 5" 40 \-\-no\-symbols \-\-in\-place\fR
+user@laptop:~$ \fBpw \-a archive1 gen "test2/test 5" 40 \-\-no\-symbols \-\-in\-place\fR
 .
 .IP "" 4
 .
@@ -520,7 +520,7 @@ Password of test2/test 5 sent to clipboard\. Will clear in 45 seconds\.
 .IP "" 0
 .
 .P
-user@MacBookPro:~/test$ \fBpw \-a archive1 show "test2/test 5"\fR
+user@laptop:~$ \fBpw \-a archive1 show "test2/test 5"\fR
 .
 .IP "" 4
 .
@@ -536,10 +536,10 @@ line 3
 .IP "" 0
 .
 .P
-user@MacBookPro:~/test$ \fBsed \-i ~/\.passw/config\.sh \-e "/ARCHIVE=/c ARCHIVE=archive1"\fR
+user@laptop:~$ \fBsed \-i ~/\.passw/config\.sh \-e "/ARCHIVE=/c ARCHIVE=archive1"\fR
 .
 .P
-user@MacBookPro:~/test$ \fBPW_DIR=~/\.passw pw ls test2\fR
+user@laptop:~$ \fBPW_DIR=~/\.passw pw ls test2\fR
 .
 .IP "" 4
 .
@@ -555,7 +555,7 @@ test2/test 5
 .IP "" 0
 .
 .P
-user@MacBookPro:~/test$ \fBpw set\-passphrase\fR
+user@laptop:~$ \fBpw set\-passphrase\fR
 .
 .IP "" 4
 .
@@ -570,7 +570,7 @@ Retype the passphrase for archive \'/home/user/\.passw/archive1\.tgz\':
 .IP "" 0
 .
 .P
-user@MacBookPro:~/test$ \fBpw set\-keys CF90C77B D774A374 EB7D54A8\fR
+user@laptop:~$ \fBpw set\-keys CF90C77B D774A374 EB7D54A8\fR
 .
 .IP "" 4
 .
@@ -582,8 +582,32 @@ Passphrase for archive \'/home/user/\.passw/archive1\.tgz\':
 .
 .IP "" 0
 .
+.P
+user@laptop:~$ \fBpw set\-keys\fR
+.
+.IP "" 4
+.
+.nf
+
+gpg (GnuPG) 2\.0\.22; Copyright (C) 2013 Free Software Foundation, Inc\.
+This is free software: you are free to change and redistribute it\.
+There is NO WARRANTY, to the extent permitted by law\.
+
+gpg: keyring `/home/user/\.passw/\.gnupg/secring\.gpg\' created
+gpg: keyring `/home/user/\.passw/\.gnupg/pubring\.gpg\' created
+Please select what kind of key you want:
+   (1) RSA and RSA (default)
+   (2) DSA and Elgamal
+   (3) DSA (sign only)
+   (4) RSA (sign only)
+Your selection?
+.
+.fi
+.
+.IP "" 0
+.
 .SH "AUTHOR"
-\fBpw\fR was written by Dashamir Hoxha (userhoxha@gmail\.com)\. The code is on GitHub at https://github\.com/dashohoxha/pw\. \fBpw\fR started as a fork of \fBpass\fR ⟨http://www\.passwordstore\.org/⟩, written by Jason A\. Donenfeld ⟨Jason@zx2c4\.com⟩\.
+\fBpw\fR was written by Dashamir Hoxha (dashohoxha@gmail\.com)\. The code is on GitHub at https://github\.com/dashohoxha/pw\. \fBpw\fR started as a fork of \fBpass\fR (http://www\.passwordstore\.org/), written by Jason A\. Donenfeld (Jason@zx2c4\.com)\.
 .
 .SH "COPYLEFT"
 This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version\.
@@ -595,4 +619,4 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Soft‐ ware Foundation, Inc\., 51 Franklin Street, Fifth Floor, Boston, MA 02110\-1301, USA\.
 .
 .SH "SEE ALSO"
-gpg2(1), pwgen(1), xclip(1)\.
+\fBgpg2\fR(1), \fBpwgen\fR(1), \fBxclip\fR(1)\.

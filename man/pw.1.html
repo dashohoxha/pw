@@ -41,6 +41,29 @@
   ol.man-decor li.tc {text-align:center;letter-spacing:4px}
   ol.man-decor li.tr {text-align:right;float:right}
   </style>
+  <style type='text/css' media='all'>
+  /* style: toc */
+  #man .man-navigation {display: block !important;position: fixed;top: 0;left: 113ex;height: 100%;width: 100%;padding: 48px 0 0 0;border-left: 1px solid #dbdbdb;background: #eee}
+  #man .man-navigation a,#man .man-navigation a:hover,#man .man-navigation a:link,#man .man-navigation a:visited {display: block;margin: 0;padding: 5px 2px 5px 30px;color: #444;text-decoration: none}
+  #man .man-navigation a:hover {color: #666;text-decoration: underline}
+  </style>
+  <style type='text/css' media='all'>
+  /* style: 80c */
+  .mp {max-width:86ex}
+   
+  .man-navigation {left:101ex}
+  </style>
+  <style type='text/css' media='all'>
+  /* style: dark */
+  .mp,body#manpage {background:#080706;color:#888}
+  .mp,.mp code,.mp pre,.mp pre code,.mp tt,.mp kbd,.mp samp {color:#aaa}
+  .mp h1,.mp h2,.mp h3,.mp h4 {color:#fff}
+  .man-decor,.man-decor ol li {color:#666}
+  .mp code,.mp strong,.mp b {color:#fff}
+  .mp em,.mp var,.mp u {color:#ddd}
+  .mp pre code {color:#ddd}
+  .mp a,.mp a:link,.mp a:hover,.mp a code,.mp a pre,.mp a tt,.mp a kbd,.mp a samp {color:#fff}
+  </style>
 </head>
 <!--
   The following styles are deprecated and will be removed at some point:
@@ -68,7 +91,7 @@
 
   <ol class='man-decor man-head man head'>
     <li class='tl'>pw(1)</li>
-    <li class='tc'></li>
+    <li class='tc'>Password Manager</li>
     <li class='tr'>pw(1)</li>
   </ol>
 
@@ -99,14 +122,14 @@
 <p>  List password files, optionally as a tree.</p></li>
 <li><p>[<code>get</code>] <var>pwfile</var></p>
 
-<p>  Copy to clipboard the password (it will be cleared in  seconds).</p></li>
+<p>  Copy to clipboard the password (it will be cleared in a few seconds).</p></li>
 <li><p><code>show</code> <var>pwfile</var></p>
 
 <p>  Print out the password contained in the given file.</p></li>
 <li><p><code>gen</code> <var>pwfile</var> [<var>length</var>] [<code>-n</code>,<code>--no-symbols</code>] [<code>-i</code>,<code>--in-place</code> | <code>-f</code>,<code>--force</code>]</p>
 
 <p>  Generate a new password with optionally no symbols.  Put it on the
-  clipboard and clear board after seconds.  Prompt before
+  clipboard and clear board after a few seconds.  Prompt before
   overwriting existing password unless forced.  Optionally replace
   only the first line of an existing file with a new password.</p></li>
 <li><p><code>set</code> <var>pwfile</var> [<code>-e</code>,<code>--echo</code> | <code>-m</code>,<code>--multiline</code>] [<code>-f</code>,<code>--force</code>]</p>
@@ -122,16 +145,16 @@
 <p>  List pwfiles that match pattern, optionally in tree format.</p></li>
 <li><p><code>grep</code> <var>search-string</var></p>
 
-<p>  Search for password files containing search-string when decrypted.</p></li>
+<p>  Search for password files containing <var>search-string</var> when decrypted.</p></li>
 <li><p><code>rm</code> <var>pwfile</var> [<code>-r</code>,<code>--recursive</code>] [<code>-f</code>,<code>--force</code>]</p>
 
 <p>  Remove existing password file or directory, optionally forcefully.</p></li>
 <li><p><code>mv</code> <var>old-path</var> <var>new-path</var> [<code>-f</code>,<code>--force</code>]</p>
 
-<p>  Renames or moves old-path to new-path, optionally forcefully.</p></li>
+<p>  Rename or move <var>old-path</var> to <var>new-path</var>, optionally forcefully.</p></li>
 <li><p><code>cp</code> <var>old-path</var> <var>new-path</var> [<code>-f</code>,<code>--force</code>]</p>
 
-<p>  Copies <var>old-path</var> to <var>new-path</var>, optionally forcefully.</p></li>
+<p>  Copy <var>old-path</var> to <var>new-path</var>, optionally forcefully.</p></li>
 <li><p><code>log</code> [-10]</p>
 
 <p>  List the history of (last 10) changes.</p></li>
@@ -164,7 +187,7 @@
 
 <p>   <code>~/.pw/</code></p>
 
-<pre><code>      The default `pw` directory.
+<pre><code>      The default pw directory.
 </code></pre>
 
 <p>   <code>~/.pw/pw.tgz.gpg</code></p>
@@ -181,7 +204,7 @@
 
 <p>   <code>PW_DIR</code></p>
 
-<pre><code>      Overrides the default `pw` directory.
+<pre><code>      Overrides the default pw directory.
 </code></pre>
 
 <p>   <code>EDITOR</code></p>
@@ -193,7 +216,7 @@
 
 <p>   Some basic usage is demonstrated on the examples below.</p>
 
-<p>   user@MacBookPro:~/test$ <code>pw</code></p>
+<p>   user@laptop:~$ <code>pw</code></p>
 
 <pre><code>Creating a new archive '/home/user/.pw/pw.tgz'.
 Enter new passphrase for archive '/home/user/.pw/pw.tgz': 
@@ -286,15 +309,15 @@ test2/test4
 
 <p>   pw> <code>q</code></p>
 
-<p>   user@MacBookPro:~/test$</p>
+<p>   user@laptop:~$</p>
 
 <h2 id="ADVANCED-EXAMPLE">ADVANCED EXAMPLE</h2>
 
 <p>   Some more advanced features are shown in the examples below.</p>
 
-<p>   user@MacBookPro:~/test$ <code>cp -a ~/.pw/ ~/.passw</code></p>
+<p>   user@laptop:~$ <code>cp -a ~/.pw/ ~/.passw</code></p>
 
-<p>   user@MacBookPro:~/test$ <code>ls -al ~/.passw</code></p>
+<p>   user@laptop:~$ <code>ls -al ~/.passw</code></p>
 
 <pre><code>total 24
 drwx------  2 user user 4096 Feb 16 22:18 .
@@ -303,16 +326,16 @@ drwxr-xr-x 73 user user 4096 Feb 16 22:31 ..
 -rw-------  1 user user 8753 Feb 16 22:18 pw.tgz.gpg
 </code></pre>
 
-<p>   user@MacBookPro:~/test$ <code>mv ~/.passw/pw.tgz.gpg ~/.passw/archive1.tgz.gpg</code></p>
+<p>   user@laptop:~$ <code>mv ~/.passw/pw.tgz.gpg ~/.passw/archive1.tgz.gpg</code></p>
 
-<p>   user@MacBookPro:~/test$ <code>export PW_DIR=~/.passw</code></p>
+<p>   user@laptop:~$ <code>export PW_DIR=~/.passw</code></p>
 
-<p>   user@MacBookPro:~/test$ <code>echo $PW_DIR</code></p>
+<p>   user@laptop:~$ <code>echo $PW_DIR</code></p>
 
 <pre><code>/home/user/.passw
 </code></pre>
 
-<p>   user@MacBookPro:~/test$ <code>pw -a archive1 ls --tree</code></p>
+<p>   user@laptop:~$ <code>pw -a archive1 ls --tree</code></p>
 
 <pre><code>Passphrase for archive '/home/user/.passw/archive1.tgz': 
 ├── test1
@@ -321,7 +344,7 @@ drwxr-xr-x 73 user user 4096 Feb 16 22:31 ..
     └── test4
 </code></pre>
 
-<p>   user@MacBookPro:~/test$ <code>pw -a archive1 set "test2/test 5" --multiline</code></p>
+<p>   user@laptop:~$ <code>pw -a archive1 set "test2/test 5" --multiline</code></p>
 
 <pre><code>Passphrase for archive '/home/user/.passw/archive1.tgz': 
 Enter contents of test2/test 5 and press Ctrl+D when finished:
@@ -331,7 +354,7 @@ line 2
 line 3
 </code></pre>
 
-<p>   user@MacBookPro:~/test$ <code>pw -a archive1 show "test2/test 5"</code></p>
+<p>   user@laptop:~$ <code>pw -a archive1 show "test2/test 5"</code></p>
 
 <pre><code>Passphrase for archive '/home/user/.passw/archive1.tgz': 
 password
@@ -339,13 +362,13 @@ line 2
 line 3
 </code></pre>
 
-<p>   user@MacBookPro:~/test$ <code>pw -a archive1 gen "test2/test 5" 40 --no-symbols --in-place</code></p>
+<p>   user@laptop:~$ <code>pw -a archive1 gen "test2/test 5" 40 --no-symbols --in-place</code></p>
 
 <pre><code>Passphrase for archive '/home/user/.passw/archive1.tgz': 
 Password of test2/test 5 sent to clipboard. Will clear in 45 seconds.
 </code></pre>
 
-<p>   user@MacBookPro:~/test$ <code>pw -a archive1 show "test2/test 5"</code></p>
+<p>   user@laptop:~$ <code>pw -a archive1 show "test2/test 5"</code></p>
 
 <pre><code>Passphrase for archive '/home/user/.passw/archive1.tgz': 
 3jXaVyxixcfnkYRR3xBr70kGxKK0I83LCmaMGeVc
@@ -353,9 +376,9 @@ line 2
 line 3
 </code></pre>
 
-<p>   user@MacBookPro:~/test$ <code>sed -i ~/.passw/config.sh -e "/ARCHIVE=/c ARCHIVE=archive1"</code></p>
+<p>   user@laptop:~$ <code>sed -i ~/.passw/config.sh -e "/ARCHIVE=/c ARCHIVE=archive1"</code></p>
 
-<p>   user@MacBookPro:~/test$ <code>PW_DIR=~/.passw pw ls test2</code></p>
+<p>   user@laptop:~$ <code>PW_DIR=~/.passw pw ls test2</code></p>
 
 <pre><code>Passphrase for archive '/home/user/.passw/archive1.tgz': 
 test2/test3
@@ -363,24 +386,40 @@ test2/test4
 test2/test 5
 </code></pre>
 
-<p>   user@MacBookPro:~/test$ <code>pw set-passphrase</code></p>
+<p>   user@laptop:~$ <code>pw set-passphrase</code></p>
 
 <pre><code>Passphrase for archive '/home/user/.passw/archive1.tgz': 
 Enter new passphrase for archive '/home/user/.passw/archive1.tgz': 
 Retype the passphrase for archive '/home/user/.passw/archive1.tgz': 
 </code></pre>
 
-<p>   user@MacBookPro:~/test$ <code>pw set-keys CF90C77B D774A374 EB7D54A8</code></p>
+<p>   user@laptop:~$ <code>pw set-keys CF90C77B D774A374 EB7D54A8</code></p>
 
 <pre><code>Passphrase for archive '/home/user/.passw/archive1.tgz': 
 </code></pre>
 
+<p>   user@laptop:~$ <code>pw set-keys</code></p>
+
+<pre><code>gpg (GnuPG) 2.0.22; Copyright (C) 2013 Free Software Foundation, Inc.
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+
+gpg: keyring `/home/user/.passw/.gnupg/secring.gpg' created
+gpg: keyring `/home/user/.passw/.gnupg/pubring.gpg' created
+Please select what kind of key you want:
+   (1) RSA and RSA (default)
+   (2) DSA and Elgamal
+   (3) DSA (sign only)
+   (4) RSA (sign only)
+Your selection? 
+</code></pre>
+
 <h2 id="AUTHOR">AUTHOR</h2>
 
-<p>   <code>pw</code> was written by Dashamir Hoxha (userhoxha@gmail.com). The code
+<p>   <code>pw</code> was written by Dashamir Hoxha (dashohoxha@gmail.com). The code
    is on GitHub at https://github.com/dashohoxha/pw.  <code>pw</code> started as
-   a fork of <code>pass</code> ⟨http://www.passwordstore.org/⟩, written by Jason
-   A. Donenfeld ⟨Jason@zx2c4.com⟩.</p>
+   a fork of <code>pass</code> (http://www.passwordstore.org/), written by Jason
+   A. Donenfeld (Jason@zx2c4.com).</p>
 
 <h2 id="COPYLEFT">COPYLEFT</h2>
 
@@ -401,11 +440,11 @@ Retype the passphrase for archive '/home/user/.passw/archive1.tgz':
 
 <h2 id="SEE-ALSO">SEE ALSO</h2>
 
-<p>   <span class="man-ref">gpg2<span class="s">(1)</span></span>, <span class="man-ref">pwgen<span class="s">(1)</span></span>, <span class="man-ref">xclip<span class="s">(1)</span></span>.</p>
+<p>   <code>gpg2</code>(1), <code>pwgen</code>(1), <code>xclip</code>(1).</p>
 
 
   <ol class='man-decor man-foot man foot'>
-    <li class='tl'></li>
+    <li class='tl'>dashohoxha</li>
     <li class='tc'>February 2016</li>
     <li class='tr'>pw(1)</li>
   </ol>
