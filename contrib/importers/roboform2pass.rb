@@ -33,7 +33,7 @@ class Login
 
   def save
     if valid?
-      IO.popen("pass insert -m -f '#{path}' > /dev/null", "w") do |pass_io|
+      IO.popen("pw edit '#{path}' > /dev/null", "w") do |pass_io|
         pass_io.puts password
         pass_io.puts "Url: #{url}" if present?(url)
         pass_io.puts "Fields: #{fields}" if fields.any?
