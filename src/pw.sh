@@ -7,6 +7,9 @@
 
 PW_DIR="${PW_DIR:-$HOME/.pw}"
 
+LIBDIR="$(dirname "$0")"
+PLATFORM="$(uname | cut -d _ -f 1 | tr '[:upper:]' '[:lower:]')"
+
 umask 077
 set -o pipefail
 
@@ -193,9 +196,7 @@ _EOF
 GETOPT="getopt"
 SHRED="shred -f -z"
 
-LIBDIR="$(dirname "$0")"
-platform="$(uname | cut -d _ -f 1 | tr '[:upper:]' '[:lower:]')"
-platform_file="$LIBDIR/platform/$platform.sh"
+platform_file="$LIBDIR/platform/$PLATFORM.sh"
 [[ -f "$platform_file" ]] && source "$platform_file"
 
 #
@@ -706,7 +707,8 @@ run_cmd() {
         keys|set-keys)           cmd_set_gpg_keys "$@" ;;
         export)                  cmd_export "$@" ;;
         import)                  cmd_import "$@" ;;
-        *)       COMMAND="get" ; cmd_get "$cmd" ;;
+        *)
+            try_ext_cmd $cmd "$@" || cmd_get "$cmd" ;;
     esac
 
     # cleanup the temporary workdir, if it is still there
@@ -751,6 +753,66 @@ timeout_clear() {
     [[ -n $TIMEOUT_PID ]] && kill $TIMEOUT_PID && wait $TIMEOUT_PID 2>/dev/null
 }
 
+try_ext_cmd() {
+    local cmd=$1; shift
+
+    # try to run '~/.pw/xyz.sh $@'
+    if [[ -x "$PW_DIR/$cmd.sh" ]]; then
+        debug 'running:' "$PW_DIR/$cmd.sh" "$@"
+        "$PW_DIR/$cmd.sh" "$@"
+        return 0
+    fi
+
+    # try to load '~/.pw/cmd_xyz.sh' and run 'cmd_xyz $@'
+    if [[ -f "$PW_DIR/cmd_$cmd.sh" ]]; then
+        debug loading: "$PW_DIR/cmd_$cmd.sh"
+        source "$PW_DIR/cmd_$cmd.sh"
+        debug running: cmd_$cmd "$@"
+        cmd_$cmd "$@"
+        return
+    fi
+
+    # try to run 'src/ext/platform/xyz.sh $@'
+    if [[ -x "$LIBDIR/ext/$PLATFORM/$cmd.sh" ]]; then
+        debug running: "$LIBDIR/ext/$PLATFORM/$cmd.sh" "$@"
+        "$LIBDIR/ext/$PLATFORM/$cmd.sh" "$@"
+        return
+    fi
+
+    # try to run 'src/ext/xyz.sh $@'
+    if [[ -x "$LIBDIR/ext/$cmd.sh" ]]; then
+        debug running: "$LIBDIR/ext/$cmd.sh" "$@"
+        "$LIBDIR/ext/$cmd.sh" "$@"
+        return
+    fi
+
+    # try to load 'src/ext/platform/cmd_xyz.sh' and run 'cmd_xyz $@'
+    if [[ -f "$LIBDIR/ext/$PLATFORM/cmd_$cmd.sh" ]]; then
+        debug loading: "$LIBDIR/ext/$PLATFORM/cmd_$cmd.sh"
+        source "$LIBDIR/ext/$PLATFORM/cmd_$cmd.sh"
+        debug running: cmd_$cmd "$@"
+        cmd_$cmd "$@"
+        return
+    fi
+
+    # try to load 'src/ext/cmd_xyz.sh' and run 'cmd_xyz $@'
+    if [[ -f "$LIBDIR/ext/cmd_$cmd.sh" ]]; then
+        debug loading: "$LIBDIR/ext/cmd_$cmd.sh"
+        source "$LIBDIR/ext/cmd_$cmd.sh"
+        debug running: cmd_$cmd "$@"
+        cmd_$cmd "$@"
+        return
+    fi
+
+    # return false
+    return 1
+}
+
+debug() {
+    [[ -z $DEBUG ]] && return
+    echo "$@"
+}
+
 config() {
     [[ -d "$PW_DIR" ]] || mkdir -p "$PW_DIR"
 
@@ -767,8 +829,11 @@ CLIP_TIME=45
 # Shell will time out after this many seconds of inactivity.
 TIMEOUT=300  # 5 min
 
-# May be needed for asymmetric encryption.
+# Used for asymmetric encryption.
 GPG_OPTS=
+
+# Enable debug output
+DEBUG=
 _EOF
     source "$config_file"
 
