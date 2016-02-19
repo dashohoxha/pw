@@ -748,7 +748,7 @@ timeout_wait() {
     kill -9 "$1" >/dev/null 2>&1
 }
 timeout_clear() {
-    [[ -n $TIMEOUT_PID ]] && kill $TIMEOUT_PID
+    [[ -n $TIMEOUT_PID ]] && kill $TIMEOUT_PID && wait $TIMEOUT_PID 2>/dev/null
 }
 
 config() {
