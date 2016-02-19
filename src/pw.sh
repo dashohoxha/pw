@@ -609,6 +609,12 @@ cmd_import() {
 # END subcommand functions
 #
 
+# The file 'customize.sh' can be used to redefine
+# and customize some functions, without having to
+# touch the code of the main script.
+customize_file="$PW_DIR/customize.sh"
+[[ -f "$customize_file" ]] && source "$customize_file"
+
 run_cmd() {
     local cmd="$1" ; shift
     case "$cmd" in
