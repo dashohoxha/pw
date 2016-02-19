@@ -251,9 +251,6 @@ Commands and their options are listed below.
     edit pwfile
         Edit or add a password file using ${EDITOR:-vi}.
 
-    find pattern [-t,--tree]
-        List pwfiles that match pattern, optionally in tree format.
-
     grep search-string
         Search for password files containing search-string when decrypted.
 
@@ -289,6 +286,11 @@ Commands and their options are listed below.
 
     version
         Show version information.
+
+External commands:
+
+    find pattern
+        List pwfiles that match pattern.
 
 More information may be found in the pw(1) man page.
 
@@ -353,32 +355,6 @@ cmd_show() {
         cmd_list "$path"
     else
         echo "Error: $path is not in the password store."
-    fi
-    rm -rf "$WORKDIR"   # cleanup
-}
-
-cmd_find() {
-    local opts tree=0
-    opts="$($GETOPT -o t -l tree -n "$PROGRAM" -- "$@")"
-    local err=$?
-    eval set -- "$opts"
-    while true; do
-        case $1 in
-            -t|--tree) tree=1; shift ;;
-            --) shift; break ;;
-        esac
-    done
-    [[ $err -ne 0 || $# -eq 0 ]] && echo "Usage: $COMMAND pattern [-t,--tree]" && return
-
-    archive_unlock    # extract to $WORKDIR
-    if [[ $tree -eq 0 ]]; then
-        pattern="*${1}*"
-        find "$WORKDIR" -name '.git' -prune -or \( -type f -and -name "$pattern" \) \
-            | sed -e "s#$WORKDIR/##" -e '/\.git/d'
-    else
-        IFS="," eval 'echo "Search Terms: $*"'
-        local terms="*$(printf '%s*|*' "$@")"
-        tree -C -l --noreport -P "${terms%|*}" --prune "$WORKDIR" | tail -n +2
     fi
     rm -rf "$WORKDIR"   # cleanup
 }
@@ -694,7 +670,6 @@ run_cmd() {
         ls|list)                 cmd_list "$@" ;;
         get)                     cmd_get "$@" ;;
         show)                    cmd_show "$@" ;;
-        find|search)             cmd_find "$@" ;;
         grep)                    cmd_grep "$@" ;;
         set)                     cmd_set "$@" ;;
         edit)                    cmd_edit "$@" ;;
@@ -756,14 +731,7 @@ timeout_clear() {
 try_ext_cmd() {
     local cmd=$1; shift
 
-    # try to run '~/.pw/xyz.sh $@'
-    if [[ -x "$PW_DIR/$cmd.sh" ]]; then
-        debug 'running:' "$PW_DIR/$cmd.sh" "$@"
-        "$PW_DIR/$cmd.sh" "$@"
-        return 0
-    fi
-
-    # try to load '~/.pw/cmd_xyz.sh' and run 'cmd_xyz $@'
+    # try '~/.pw/cmd_xyz.sh'
     if [[ -f "$PW_DIR/cmd_$cmd.sh" ]]; then
         debug loading: "$PW_DIR/cmd_$cmd.sh"
         source "$PW_DIR/cmd_$cmd.sh"
@@ -772,21 +740,7 @@ try_ext_cmd() {
         return
     fi
 
-    # try to run 'src/ext/platform/xyz.sh $@'
-    if [[ -x "$LIBDIR/ext/$PLATFORM/$cmd.sh" ]]; then
-        debug running: "$LIBDIR/ext/$PLATFORM/$cmd.sh" "$@"
-        "$LIBDIR/ext/$PLATFORM/$cmd.sh" "$@"
-        return
-    fi
-
-    # try to run 'src/ext/xyz.sh $@'
-    if [[ -x "$LIBDIR/ext/$cmd.sh" ]]; then
-        debug running: "$LIBDIR/ext/$cmd.sh" "$@"
-        "$LIBDIR/ext/$cmd.sh" "$@"
-        return
-    fi
-
-    # try to load 'src/ext/platform/cmd_xyz.sh' and run 'cmd_xyz $@'
+    # try 'src/ext/platform/cmd_xyz.sh'
     if [[ -f "$LIBDIR/ext/$PLATFORM/cmd_$cmd.sh" ]]; then
         debug loading: "$LIBDIR/ext/$PLATFORM/cmd_$cmd.sh"
         source "$LIBDIR/ext/$PLATFORM/cmd_$cmd.sh"
@@ -795,7 +749,7 @@ try_ext_cmd() {
         return
     fi
 
-    # try to load 'src/ext/cmd_xyz.sh' and run 'cmd_xyz $@'
+    # try 'src/ext/cmd_xyz.sh'
     if [[ -f "$LIBDIR/ext/cmd_$cmd.sh" ]]; then
         debug loading: "$LIBDIR/ext/cmd_$cmd.sh"
         source "$LIBDIR/ext/cmd_$cmd.sh"
@@ -860,7 +814,8 @@ main() {
         ARCHIVE=$2
         shift 2
     fi
-    ARCHIVE="$PW_DIR/$ARCHIVE.tgz"
+    archive=$ARCHIVE
+    ARCHIVE="$PW_DIR/$archive.tgz"
     [[ -f "$ARCHIVE.gpg" ]] || archive_init
     [[ -f "$ARCHIVE.gpg.keys" ]] &&  source "$ARCHIVE.gpg.keys"    # get GPG_KEYS
 
