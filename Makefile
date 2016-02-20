@@ -14,8 +14,8 @@ install:
 	@install -v -m 0755 src/pw.sh "$(PW)"
 	@sed -i $(PW) -e "s#^LIBDIR=.*#LIBDIR=\"$(LIB)\"#"
 
-	@install -v -d "$(LIB)/platform/"
-	@install -v -m 0644 $(wildcard src/platform/*) "$(LIB)/platform/"
+	@install -v -d "$(LIB)/"
+	@cp -v -r src/platform src/ext "$(LIB)"
 
 	@install -v -d "$(MANDIR)/"
 	@install -v -m 0644 man/pw.1 "$(MANDIR)/pw.1"
