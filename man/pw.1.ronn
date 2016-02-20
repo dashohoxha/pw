@@ -31,13 +31,6 @@ pw(1) -- simple password manager
 
     Print out the password contained in the given file.
 
-* `gen` <pwfile> [<length>] [`-n`,`--no-symbols`] [`-i`,`--in-place` | `-f`,`--force`]
-
-    Generate a new password with optionally no symbols.  Put it on the
-    clipboard and clear board after a few seconds.  Prompt before
-    overwriting existing password unless forced.  Optionally replace
-    only the first line of an existing file with a new password.
-
 * `set` <pwfile> [`-e`,`--echo` | `-m`,`--multiline`] [`-f`,`--force`]
 
     Insert new password. Optionally, echo the password back to the
@@ -47,10 +40,6 @@ pw(1) -- simple password manager
 * `edit` <pwfile>
 
     Edit or add a password file using vi.
-
-* `find` <pattern> [`-t`,`--tree`]
-
-    List pwfiles that match pattern, optionally in tree format.
 
 * `grep` <search-string>
 
@@ -101,6 +90,30 @@ pw(1) -- simple password manager
     Show version information.
 
 
+## EXTERNAL COMMANDS
+
+* `gen` <pwfile> [<length>] [`-n`,`--no-symbols`] [`-i`,`--in-place` | `-f`,`--force`]
+
+    Generate a new password with optionally no symbols.  Put it on the
+    clipboard and clear board after a few seconds.  Prompt before
+    overwriting existing password unless forced.  Optionally replace
+    only the first line of an existing file with a new password.
+
+* `find` <pattern>
+
+    List pwfiles that match pattern.
+
+* `field` <pwfile> <fieldname>
+
+    Display the value of the given field from pwfile. The field name
+    starts at the begining of line and ends with a column, for
+    example: 'username: ...' or 'url: ...'.
+
+* `qr` <pwfile>
+
+    Display the password as a QR image.
+
+
 ## FILES
 
    `~/.pw/`
@@ -112,6 +125,9 @@ pw(1) -- simple password manager
    `~/.pw/config.sh`
           The configuration file.
 
+   `~/.pw/customize.sh`
+          Optional customization file.
+
 
 ## ENVIRONMENT VARIABLES
 
@@ -120,6 +136,20 @@ pw(1) -- simple password manager
 
    `EDITOR`
           The location of the text editor used by edit.
+
+
+## CUSTOMIZATION
+
+The file `$PW_DIR/customize.sh` can be used to redefine and customize
+some functions, without having to touch the code of the main script.
+Also, external commands can be customized (or new commands can be
+defined) by adding the file `$PW_DIR/cmd_command.sh`, which contains
+the function `cmd_command() { . . . }`.
+
+In general, for an external command the script will first look for
+`$PW_DIR/cmd_command.sh`, then for `$LIB/ext/$PLATFORM/cmd_command.sh`,
+and finally for `$LIB/ext/cmd_command.sh`.  The first that is found is
+loaded and used.
 
 
 ## SIMPLE EXAMPLE

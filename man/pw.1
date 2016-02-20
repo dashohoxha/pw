@@ -33,12 +33,6 @@ Copy to clipboard the password (it will be cleared in a few seconds)\.
 Print out the password contained in the given file\.
 .
 .IP "\(bu" 4
-\fBgen\fR \fIpwfile\fR [\fIlength\fR] [\fB\-n\fR,\fB\-\-no\-symbols\fR] [\fB\-i\fR,\fB\-\-in\-place\fR | \fB\-f\fR,\fB\-\-force\fR]
-.
-.IP
-Generate a new password with optionally no symbols\. Put it on the clipboard and clear board after a few seconds\. Prompt before overwriting existing password unless forced\. Optionally replace only the first line of an existing file with a new password\.
-.
-.IP "\(bu" 4
 \fBset\fR \fIpwfile\fR [\fB\-e\fR,\fB\-\-echo\fR | \fB\-m\fR,\fB\-\-multiline\fR] [\fB\-f\fR,\fB\-\-force\fR]
 .
 .IP
@@ -49,12 +43,6 @@ Insert new password\. Optionally, echo the password back to the console during e
 .
 .IP
 Edit or add a password file using vi\.
-.
-.IP "\(bu" 4
-\fBfind\fR \fIpattern\fR [\fB\-t\fR,\fB\-\-tree\fR]
-.
-.IP
-List pwfiles that match pattern, optionally in tree format\.
 .
 .IP "\(bu" 4
 \fBgrep\fR \fIsearch\-string\fR
@@ -127,6 +115,34 @@ Show version information\.
 .
 .IP "" 0
 .
+.SH "EXTERNAL COMMANDS"
+.
+.IP "\(bu" 4
+\fBgen\fR \fIpwfile\fR [\fIlength\fR] [\fB\-n\fR,\fB\-\-no\-symbols\fR] [\fB\-i\fR,\fB\-\-in\-place\fR | \fB\-f\fR,\fB\-\-force\fR]
+.
+.IP
+Generate a new password with optionally no symbols\. Put it on the clipboard and clear board after a few seconds\. Prompt before overwriting existing password unless forced\. Optionally replace only the first line of an existing file with a new password\.
+.
+.IP "\(bu" 4
+\fBfind\fR \fIpattern\fR
+.
+.IP
+List pwfiles that match pattern\.
+.
+.IP "\(bu" 4
+\fBfield\fR \fIpwfile\fR \fIfieldname\fR
+.
+.IP
+Display the value of the given field from pwfile\. The field name starts at the begining of line and ends with a column, for example: \'username: \.\.\.\' or \'url: \.\.\.\'\.
+.
+.IP "\(bu" 4
+\fBqr\fR \fIpwfile\fR
+.
+.IP
+Display the password as a QR image\.
+.
+.IP "" 0
+.
 .SH "FILES"
 \fB~/\.pw/\fR
 .
@@ -166,6 +182,19 @@ Show version information\.
 .
 .IP "" 0
 .
+.P
+\fB~/\.pw/customize\.sh\fR
+.
+.IP "" 4
+.
+.nf
+
+      Optional customization file\.
+.
+.fi
+.
+.IP "" 0
+.
 .SH "ENVIRONMENT VARIABLES"
 \fBPW_DIR\fR
 .
@@ -191,6 +220,12 @@ Show version information\.
 .fi
 .
 .IP "" 0
+.
+.SH "CUSTOMIZATION"
+The file \fB$PW_DIR/customize\.sh\fR can be used to redefine and customize some functions, without having to touch the code of the main script\. Also, external commands can be customized (or new commands can be defined) by adding the file \fB$PW_DIR/cmd_command\.sh\fR, which contains the function \fBcmd_command() { \. \. \. }\fR\.
+.
+.P
+In general, for an external command the script will first look for \fB$PW_DIR/cmd_command\.sh\fR, then for \fB$LIB/ext/$PLATFORM/cmd_command\.sh\fR, and finally for \fB$LIB/ext/cmd_command\.sh\fR\. The first that is found is loaded and used\.
 .
 .SH "SIMPLE EXAMPLE"
 Some basic usage is demonstrated on the examples below\.

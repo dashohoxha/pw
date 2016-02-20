@@ -236,13 +236,6 @@ Commands and their options are listed below.
     show pwfile
         Print out the password contained in the given file.
 
-    gen pwfile [length] [-n,--no-symbols] [-i,--in-place | -f,--force]
-        Generate a new password with optionally no symbols.  Put it on
-        the clipboard and clear board after $CLIP_TIME seconds.
-        Prompt before overwriting existing password unless forced.
-        Optionally replace only the first line of an existing file
-        with a new password.
-
     set pwfile [-e,--echo | -m,--multiline] [-f,--force]
         Insert new password. Optionally, echo the password back to the
         console during entry. Or, optionally, the entry may be multiline.
@@ -289,8 +282,23 @@ Commands and their options are listed below.
 
 External commands:
 
+    gen pwfile [length] [-n,--no-symbols] [-i,--in-place | -f,--force]
+        Generate a new password with optionally no symbols.  Put it on
+        the clipboard and clear board after $CLIP_TIME seconds.
+        Prompt before overwriting existing password unless forced.
+        Optionally replace only the first line of an existing file
+        with a new password.
+
     find pattern
         List pwfiles that match pattern.
+
+    field pwfile field-name
+        Display the value of the given field from pwfile. The field
+        name starts at the begining of line and ends with a column,
+        for example: 'username: ...' or 'url: ...'.
+
+    qr pwfile
+        Display the password as a QR image.
 
 More information may be found in the pw(1) man page.
 

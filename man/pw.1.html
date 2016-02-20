@@ -80,8 +80,10 @@
     <a href="#SYNOPSIS">SYNOPSIS</a>
     <a href="#DESCRIPTION">DESCRIPTION</a>
     <a href="#COMMANDS">COMMANDS</a>
+    <a href="#EXTERNAL-COMMANDS">EXTERNAL COMMANDS</a>
     <a href="#FILES">FILES</a>
     <a href="#ENVIRONMENT-VARIABLES">ENVIRONMENT VARIABLES</a>
+    <a href="#CUSTOMIZATION">CUSTOMIZATION</a>
     <a href="#SIMPLE-EXAMPLE">SIMPLE EXAMPLE</a>
     <a href="#ADVANCED-EXAMPLE">ADVANCED EXAMPLE</a>
     <a href="#AUTHOR">AUTHOR</a>
@@ -126,12 +128,6 @@
 <li><p><code>show</code> <var>pwfile</var></p>
 
 <p>  Print out the password contained in the given file.</p></li>
-<li><p><code>gen</code> <var>pwfile</var> [<var>length</var>] [<code>-n</code>,<code>--no-symbols</code>] [<code>-i</code>,<code>--in-place</code> | <code>-f</code>,<code>--force</code>]</p>
-
-<p>  Generate a new password with optionally no symbols.  Put it on the
-  clipboard and clear board after a few seconds.  Prompt before
-  overwriting existing password unless forced.  Optionally replace
-  only the first line of an existing file with a new password.</p></li>
 <li><p><code>set</code> <var>pwfile</var> [<code>-e</code>,<code>--echo</code> | <code>-m</code>,<code>--multiline</code>] [<code>-f</code>,<code>--force</code>]</p>
 
 <p>  Insert new password. Optionally, echo the password back to the
@@ -140,9 +136,6 @@
 <li><p><code>edit</code> <var>pwfile</var></p>
 
 <p>  Edit or add a password file using vi.</p></li>
-<li><p><code>find</code> <var>pattern</var> [<code>-t</code>,<code>--tree</code>]</p>
-
-<p>  List pwfiles that match pattern, optionally in tree format.</p></li>
 <li><p><code>grep</code> <var>search-string</var></p>
 
 <p>  Search for password files containing <var>search-string</var> when decrypted.</p></li>
@@ -183,6 +176,29 @@
 </ul>
 
 
+<h2 id="EXTERNAL-COMMANDS">EXTERNAL COMMANDS</h2>
+
+<ul>
+<li><p><code>gen</code> <var>pwfile</var> [<var>length</var>] [<code>-n</code>,<code>--no-symbols</code>] [<code>-i</code>,<code>--in-place</code> | <code>-f</code>,<code>--force</code>]</p>
+
+<p>  Generate a new password with optionally no symbols.  Put it on the
+  clipboard and clear board after a few seconds.  Prompt before
+  overwriting existing password unless forced.  Optionally replace
+  only the first line of an existing file with a new password.</p></li>
+<li><p><code>find</code> <var>pattern</var></p>
+
+<p>  List pwfiles that match pattern.</p></li>
+<li><p><code>field</code> <var>pwfile</var> <var>fieldname</var></p>
+
+<p>  Display the value of the given field from pwfile. The field name
+  starts at the begining of line and ends with a column, for
+  example: 'username: ...' or 'url: ...'.</p></li>
+<li><p><code>qr</code> <var>pwfile</var></p>
+
+<p>  Display the password as a QR image.</p></li>
+</ul>
+
+
 <h2 id="FILES">FILES</h2>
 
 <p>   <code>~/.pw/</code></p>
@@ -200,6 +216,11 @@
 <pre><code>      The configuration file.
 </code></pre>
 
+<p>   <code>~/.pw/customize.sh</code></p>
+
+<pre><code>      Optional customization file.
+</code></pre>
+
 <h2 id="ENVIRONMENT-VARIABLES">ENVIRONMENT VARIABLES</h2>
 
 <p>   <code>PW_DIR</code></p>
@@ -211,6 +232,19 @@
 
 <pre><code>      The location of the text editor used by edit.
 </code></pre>
+
+<h2 id="CUSTOMIZATION">CUSTOMIZATION</h2>
+
+<p>The file <code>$PW_DIR/customize.sh</code> can be used to redefine and customize
+some functions, without having to touch the code of the main script.
+Also, external commands can be customized (or new commands can be
+defined) by adding the file <code>$PW_DIR/cmd_command.sh</code>, which contains
+the function <code>cmd_command() { . . . }</code>.</p>
+
+<p>In general, for an external command the script will first look for
+<code>$PW_DIR/cmd_command.sh</code>, then for <code>$LIB/ext/$PLATFORM/cmd_command.sh</code>,
+and finally for <code>$LIB/ext/cmd_command.sh</code>.  The first that is found is
+loaded and used.</p>
 
 <h2 id="SIMPLE-EXAMPLE">SIMPLE EXAMPLE</h2>
 
