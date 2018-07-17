@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 # Copyright (C) 2012 - 2014 Jason A. Donenfeld <Jason@zx2c4.com>.
 # Copyright (C) 2016 Dashamir Hoxha <dashohoxha@gmail.com>.
@@ -19,35 +19,13 @@ set -o pipefail
 
 GPG="gpg" ; which gpg2 &>/dev/null && GPG="gpg2"
 
-encrypt() {
-    local archive=$1
-    local opts="--quiet --yes --batch --compress-algo=none $GPG_OPTS"
-    if [[ -z $GPG_KEYS ]]; then
-        $GPG --symmetric $opts --cipher-algo=AES256 \
-            --passphrase-fd 0 "$archive" <<< "$PASSPHRASE"
-    else
-        local recipients=''
-        for key in $GPG_KEYS; do recipients="$recipients -r $key"; done
-        $GPG --encrypt $opts --use-agent --no-encrypt-to \
-            $recipients "$archive"
-    fi
-}
-decrypt() {
-    local archive=$1
-    local opts="--quiet --yes --batch $GPG_OPTS"
-    if [[ -z $GPG_KEYS ]]; then
-        $GPG $opts --passphrase-fd 0 "$archive.gpg" <<< "$PASSPHRASE"
-    else
-        $GPG --decrypt $opts --use-agent --output="$archive" "$archive.gpg"
-    fi
-}
-
 get_passphrase() {
     [[ -z $GPG_KEYS ]] || return
     [[ -z $PASSPHRASE ]] || return
     read -r -p "Passphrase for archive '$ARCHIVE': " -s PASSPHRASE || exit 1
     [[ -t 0 ]] && echo
 }
+
 new_passphrase() {
     local passphrase passphrase_again
     while true; do
@@ -72,33 +50,49 @@ archive_init() {
     archive_lock
     cmd_git init
 }
+
 archive_lock() {
     [[ -d "$WORKDIR" ]]  || return
 
-    get_passphrase
-    tar -czf "$ARCHIVE" -C "$WORKDIR" . >/dev/null 2>&1
-    encrypt "$ARCHIVE"
-    local err=$?
-
-    rm -rf "$WORKDIR" "$ARCHIVE"
-    unset WORKDIR
-
-    [[ $err -ne 0 ]] && exit $err
+    local tar_create="tar --create --gzip --to-stdout"
+    local gpg_opts="--quiet --yes --batch --compress-algo=none $GPG_OPTS"
+    if symmetric_encryption; then
+        get_passphrase
+        exec 3< <(cat <<< "$PASSPHRASE")
+        $tar_create --directory="$WORKDIR" . \
+            | $GPG --symmetric $gpg_opts \
+                   --no-symkey-cache \
+                   --passphrase-fd 3 \
+                   --output "$ARCHIVE.gpg"
+    else
+        local recipients=''
+        for key in $GPG_KEYS; do recipients="$recipients -r $key"; done
+        $tar_create --directory="$WORKDIR" . \
+            | $GPG --encrypt $gpg_opts \
+                   --no-encrypt-to \
+                   $recipients \
+                   --output "$ARCHIVE.gpg"
+    fi
 }
+
 archive_unlock() {
     [[ -s "$ARCHIVE.gpg" ]] || return
 
     make_workdir
-    [[ -d "$WORKDIR" ]]  || exit 1
     export GIT_DIR="$WORKDIR/.git"
     export GIT_WORK_TREE="$WORKDIR"
 
-    get_passphrase
-    decrypt "$ARCHIVE"
-    local err=$?
-    [[ $err -ne 0 ]] && exit $err
-    tar -xzf "$ARCHIVE" -C "$WORKDIR" >/dev/null 2>&1
-    rm -f "$ARCHIVE"
+    local tar_extract="tar --extract --gunzip -f-"
+    local gpg_opts="--quiet --yes --batch $GPG_OPTS"
+    if symmetric_encryption; then
+        get_passphrase
+        exec 3< <(cat <<< "$PASSPHRASE")
+        $GPG $gpg_opts --passphrase-fd 3 -o- "$ARCHIVE.gpg" \
+            | $tar_extract --directory="$WORKDIR"
+    else
+        $GPG --decrypt $gpg_opts -o- "$ARCHIVE.gpg" \
+            | $tar_extract --directory="$WORKDIR"
+    fi
 }
 
 git_add_file() {
@@ -116,6 +110,10 @@ yesno() {
     read -r -p "$1 [y/N] " response
     [[ $response == [yY] ]] || return 1
 }
+symmetric_encryption() {
+    [[ -z $GPG_KEYS ]] && return 0
+    return 1
+}
 die() {
     echo "$@" >&2
     exit 1
@@ -123,7 +121,8 @@ die() {
 check_sneaky_paths() {
     local path
     for path in "$@"; do
-        [[ $path =~ /\.\.$ || $path =~ ^\.\./ || $path =~ /\.\./ || $path =~ ^\.\.$ ]] && die "Error: You've attempted to pass a sneaky path. Go home."
+        [[ $path =~ /\.\.$ || $path =~ ^\.\./ || $path =~ /\.\./ || $path =~ ^\.\.$ ]] \
+            && die "Error: You've attempted to pass a sneaky path. Go home."
     done
 }
 
@@ -191,6 +190,7 @@ _EOF
         }
         trap shred_tmpfile INT TERM EXIT
     fi
+    [[ -d "$WORKDIR" ]]  || exit 1
 }
 
 GETOPT="getopt"
@@ -213,7 +213,7 @@ cmd_version() {
         ====================================
         = pw: a simple password manager    =
         =                                  =
-        =               v1.0               =
+        =               v1.2               =
         =                                  =
         = https://github.com/dashohoxha/pw =
         ====================================
@@ -430,17 +430,36 @@ cmd_set() {
 }
 
 cmd_edit() {
+    # get the path of the file to be edited
     [[ $# -ne 1 ]] && echo "Usage: $COMMAND pwfile" && return
-
-    archive_unlock    # extract to $WORKDIR
-
     local path="$1"
     check_sneaky_paths "$path"
+
+    # get the content of the file to be edited
+    archive_unlock    # extract to $WORKDIR
     mkdir -p "$WORKDIR/$(dirname "$path")"
     local action="Add" ; [[ -f "$WORKDIR/$path" ]] && action="Edit"
-    ${EDITOR:-vi} "$WORKDIR/$path"
-    git_add_file "$WORKDIR/$path" "$action password for $path using ${EDITOR:-vi}."
+    touch "$WORKDIR/$path"
+    local file_content="$(cat "$WORKDIR/$path")"
+    archive_lock      # cleanup $WORKDIR
 
+    # edit the content of the file
+    make_workdir
+    mkdir -p "$WORKDIR/$(dirname "$path")"
+    cat <<EOF > "$WORKDIR/$path"
+$file_content
+EOF
+    ${EDITOR:-vi} "$WORKDIR/$path"
+    file_content="$(cat "$WORKDIR/$path")"
+    rm -rf "$WORKDIR"
+    unset WORKDIR
+
+    # save the edited content of the file
+    archive_unlock    # extract to $WORKDIR
+    cat <<EOF > "$WORKDIR/$path"
+$file_content
+EOF
+    git_add_file "$WORKDIR/$path" "$action password for $path using ${EDITOR:-vi}."
     archive_lock      # cleanup $WORKDIR
 }
 
@@ -566,7 +585,7 @@ cmd_set_passphrase() {
 
 cmd_set_gpg_keys() {
     archive_unlock || return
-    GPG_KEYS="$@"
+    GPG_KEYS="$*"
     [[ -z $GPG_KEYS ]] && gen_gpg_key
     unset PASSPHRASE
     archive_lock
@@ -744,8 +763,8 @@ CLIP_TIME=45
 # Shell will time out after this many seconds of inactivity.
 TIMEOUT=300  # 5 min
 
-# Used for asymmetric encryption.
-GPG_OPTS=
+# Additional GnuPG options (like --homedir).
+GPG_OPTS=""
 
 # Enable debug output
 DEBUG=
@@ -770,12 +789,12 @@ main() {
     PROGRAM="${0##*/}"
 
     # get the archive
+    local archive=pw
     if [[ $1 == '-a' ]]; then
-        [[ -z $2 ]] && echo "Usage: $PROGRAM [-a <archive>] [<command> <options>]" && exit 1
-        ARCHIVE=$2
+        [[ -n $2 ]] || die "Usage: $PROGRAM [-a <archive>] [<command> <options>]"
+        archive=$2
         shift 2
     fi
-    archive=$ARCHIVE
     ARCHIVE="$PW_DIR/$archive.tgz"
     [[ -f "$ARCHIVE.gpg" ]] || archive_init
     [[ -f "$ARCHIVE.gpg.keys" ]] &&  source "$ARCHIVE.gpg.keys"    # get GPG_KEYS
