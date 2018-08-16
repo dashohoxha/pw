@@ -3,17 +3,17 @@
 # This file is licensed under the GPLv2+. Please see COPYING for more information.
 
 make_workdir() {
-	[[ -n $WORKDIR ]] && return
+	[[ -n $TEMPDIR ]] && return
 	local warn=1
 	[[ $1 == "nowarn" ]] && warn=0
 	local template="$PROGRAM.XXXXXXXXXXXXX"
 	if [[ $(sysctl -n kern.usermount) == 1 ]]; then
-		WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/$template")"
-		mount -t tmpfs -o -s16M tmpfs "$WORKDIR" || die "Error: could not create tmpfs."
+		TEMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/$template")"
+		mount -t tmpfs -o -s16M tmpfs "$TEMPDIR" || die "Error: could not create tmpfs."
 		unmount_tmpdir() {
-			 [[ -n $WORKDIR && -d $WORKDIR ]] || return
-			 umount "$WORKDIR"
-			 rm -rf "$WORKDIR"
+			 [[ -n $TEMPDIR && -d $TEMPDIR ]] || return
+			 umount "$TEMPDIR"
+			 rm -rf "$TEMPDIR"
 		}
 		trap unmount_tmpdir INT TERM EXIT
 	else
@@ -27,10 +27,10 @@ make_workdir() {
 		Are you sure you would like to continue?
 		_EOF
 		)"
-		WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/$template")"
+		TEMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/$template")"
 		shred_tmpfile() {
-			find "$WORKDIR" -type f -exec $SHRED {} +
-			rm -rf "$WORKDIR"
+			find "$TEMPDIR" -type f -exec $SHRED {} +
+			rm -rf "$TEMPDIR"
 		}
 		trap shred_tmpfile INT TERM EXIT
 	fi

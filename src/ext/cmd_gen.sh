@@ -23,10 +23,10 @@ cmd_gen() {
         && echo "Error: pass-length \"$length\" must be a number." \
         && return
 
-    archive_unlock    # extract to $WORKDIR
+    archive_unlock    # extract to $TEMPDIR
 
-    mkdir -p "$WORKDIR/$(dirname "$path")"
-    local pwfile="$WORKDIR/$path"
+    mkdir -p "$TEMPDIR/$(dirname "$path")"
+    local pwfile="$TEMPDIR/$path"
 
     if [[ $inplace -eq 0 && $force -eq 0 && -e $pwfile ]]; then
         yesno "An entry already exists for $path. Overwrite it?" || return
@@ -47,5 +47,5 @@ cmd_gen() {
     local verb="Add" ; [[ $inplace -eq 1 ]] && verb="Replace"
     git_add_file "$pwfile" "$verb generated password for ${path}."
 
-    archive_lock      # cleanup $WORKDIR
+    archive_lock      # cleanup $TEMPDIR
 }

@@ -52,14 +52,14 @@ archive_init() {
 }
 
 archive_lock() {
-    [[ -d "$WORKDIR" ]]  || return
+    [[ -d "$TEMPDIR" ]]  || return
 
     local tar_create="tar --create --gzip --to-stdout"
     local gpg_opts="--quiet --yes --batch --compress-algo=none $GPG_OPTS"
     if symmetric_encryption; then
         get_passphrase
         exec 3< <(cat <<< "$PASSPHRASE")
-        $tar_create --directory="$WORKDIR" . \
+        $tar_create --directory="$TEMPDIR" . \
             | $GPG --symmetric $gpg_opts \
                    --no-symkey-cache \
                    --passphrase-fd 3 \
@@ -67,7 +67,7 @@ archive_lock() {
     else
         local recipients=''
         for key in $GPG_KEYS; do recipients="$recipients -r $key"; done
-        $tar_create --directory="$WORKDIR" . \
+        $tar_create --directory="$TEMPDIR" . \
             | $GPG --encrypt $gpg_opts \
                    --no-encrypt-to \
                    $recipients \
@@ -79,8 +79,8 @@ archive_unlock() {
     [[ -s "$ARCHIVE.gpg" ]] || return
 
     make_workdir
-    export GIT_DIR="$WORKDIR/.git"
-    export GIT_WORK_TREE="$WORKDIR"
+    export GIT_DIR="$TEMPDIR/.git"
+    export GIT_WORK_TREE="$TEMPDIR"
 
     local tar_extract="tar --extract --gunzip -f-"
     local gpg_opts="--quiet --yes --batch $GPG_OPTS"
@@ -88,10 +88,10 @@ archive_unlock() {
         get_passphrase
         exec 3< <(cat <<< "$PASSPHRASE")
         $GPG $gpg_opts --passphrase-fd 3 -o- "$ARCHIVE.gpg" \
-            | $tar_extract --directory="$WORKDIR"
+            | $tar_extract --directory="$TEMPDIR"
     else
         $GPG --decrypt $gpg_opts -o- "$ARCHIVE.gpg" \
-            | $tar_extract --directory="$WORKDIR"
+            | $tar_extract --directory="$TEMPDIR"
     fi
 }
 
@@ -167,9 +167,9 @@ make_workdir() {
     [[ $1 == "nowarn" ]] && warn=0
     local template="$PROGRAM.XXXXXXXXXXXXX"
     if [[ -d /dev/shm && -w /dev/shm && -x /dev/shm ]]; then
-        WORKDIR="$(mktemp -d "/dev/shm/$template")"
+        TEMPDIR="$(mktemp -d "/dev/shm/$template")"
         remove_tmpfile() {
-            rm -rf "$WORKDIR"
+            rm -rf "$TEMPDIR"
         }
         trap remove_tmpfile INT TERM EXIT
     else
@@ -183,14 +183,14 @@ Are you sure you would like to continue?
 _EOF
                     )" || return
         fi
-        WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/$template")"
+        TEMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/$template")"
         shred_tmpfile() {
-            find "$WORKDIR" -type f -exec $SHRED {} +
-            rm -rf "$WORKDIR"
+            find "$TEMPDIR" -type f -exec $SHRED {} +
+            rm -rf "$TEMPDIR"
         }
         trap shred_tmpfile INT TERM EXIT
     fi
-    [[ -d "$WORKDIR" ]]  || exit 1
+    [[ -d "$TEMPDIR" ]]  || exit 1
 }
 
 GETOPT="getopt"
@@ -321,58 +321,58 @@ cmd_list() {
     local path="$1"
     check_sneaky_paths "$path"
 
-    archive_unlock    # extract to $WORKDIR
-    if [[ -f "$WORKDIR/$path" ]]; then
-        cat "$WORKDIR/$path" || return
-    elif [[ -d "$WORKDIR/$path" ]]; then
+    archive_unlock    # extract to $TEMPDIR
+    if [[ -f "$TEMPDIR/$path" ]]; then
+        cat "$TEMPDIR/$path" || return
+    elif [[ -d "$TEMPDIR/$path" ]]; then
         if [[ $tree -eq 0 ]]; then
-            find "$WORKDIR/$path" -name '.git' -prune -or -type f | sed -e "s#$WORKDIR/##" -e '/\.git/d'
+            find "$TEMPDIR/$path" -name '.git' -prune -or -type f | sed -e "s#$TEMPDIR/##" -e '/\.git/d'
         else
             [[ -n $path ]] && echo "${path%\/}"
-            tree -C -l --noreport "$WORKDIR/$path" | tail -n +2
+            tree -C -l --noreport "$TEMPDIR/$path" | tail -n +2
         fi
     else
         echo "Error: $path is not in the password store."
     fi
-    rm -rf "$WORKDIR"   # cleanup
+    rm -rf "$TEMPDIR"   # cleanup
 }
 
 cmd_get() {
     local path="$1"
     check_sneaky_paths "$path"
 
-    archive_unlock    # extract to $WORKDIR
-    if [[ -f "$WORKDIR/$path" ]]; then
-        local pass="$(cat "$WORKDIR/$path" | head -n 1)"
+    archive_unlock    # extract to $TEMPDIR
+    if [[ -f "$TEMPDIR/$path" ]]; then
+        local pass="$(cat "$TEMPDIR/$path" | head -n 1)"
         [[ -n "$pass" ]] \
             && if [[ -t 0 || -z $RUN_SHELL ]]; then clip "$pass" "$path"; else echo "$pass"; fi
     else
         echo "Error: $path is not in the password store."
     fi
-    rm -rf "$WORKDIR"   # cleanup
+    rm -rf "$TEMPDIR"   # cleanup
 }
 
 cmd_show() {
     local path="$1"
     check_sneaky_paths "$path"
 
-    archive_unlock    # extract to $WORKDIR
-    if [[ -f "$WORKDIR/$path" ]]; then
-        cat "$WORKDIR/$path"
-    elif [[ -d "$WORKDIR/$path" ]]; then
+    archive_unlock    # extract to $TEMPDIR
+    if [[ -f "$TEMPDIR/$path" ]]; then
+        cat "$TEMPDIR/$path"
+    elif [[ -d "$TEMPDIR/$path" ]]; then
         cmd_list "$path"
     else
         echo "Error: $path is not in the password store."
     fi
-    rm -rf "$WORKDIR"   # cleanup
+    rm -rf "$TEMPDIR"   # cleanup
 }
 
 cmd_grep() {
     [[ $# -ne 1 ]] && echo "Usage: $COMMAND search-string" && return
     local search="$1"
-    archive_unlock    # extract to $WORKDIR
-    grep --color=always "$search" --exclude-dir=.git --recursive "$WORKDIR" | sed -e "s#$WORKDIR/##"
-    rm -rf "$WORKDIR"   # cleanup
+    archive_unlock    # extract to $TEMPDIR
+    grep --color=always "$search" --exclude-dir=.git --recursive "$TEMPDIR" | sed -e "s#$TEMPDIR/##"
+    rm -rf "$TEMPDIR"   # cleanup
 }
 
 cmd_set() {
@@ -392,19 +392,19 @@ cmd_set() {
         && echo "Usage: $COMMAND pwfile [-e,--echo | -m,--multiline] [-f,--force]" \
         && return
 
-    archive_unlock    # extract to $WORKDIR
+    archive_unlock    # extract to $TEMPDIR
 
     local path="$1"
     check_sneaky_paths "$path"
-    if [[ $force -eq 0 && -e "$WORKDIR/$path" ]]; then
+    if [[ $force -eq 0 && -e "$TEMPDIR/$path" ]]; then
         yesno "An entry already exists for $path. Overwrite it?" || return
     fi
-    mkdir -p "$WORKDIR/$(dirname "$path")" || return
+    mkdir -p "$TEMPDIR/$(dirname "$path")" || return
 
     if [[ $multiline -eq 1 ]]; then
         echo "Enter contents of $path and press Ctrl+D when finished:"
         echo
-        cat > "$WORKDIR/$path" || return
+        cat > "$TEMPDIR/$path" || return
     elif [[ $noecho -eq 1 ]]; then
         local password password_again
         while true; do
@@ -413,7 +413,7 @@ cmd_set() {
             read -r -p "Retype password for $path: " -s password_again || return
             echo
             if [[ "$password" == "$password_again" ]]; then
-                cat <<< "$password" > "$WORKDIR/$path"
+                cat <<< "$password" > "$TEMPDIR/$path"
                 break
             else
                 echo "Error: the entered passwords do not match."
@@ -422,11 +422,11 @@ cmd_set() {
     else
         local password
         read -r -p "Enter password for $path: " -e password
-        cat <<< "$password" > "$WORKDIR/$path"
+        cat <<< "$password" > "$TEMPDIR/$path"
     fi
-    git_add_file "$WORKDIR/$path" "Add given password for $path."
+    git_add_file "$TEMPDIR/$path" "Add given password for $path."
 
-    archive_lock      # cleanup $WORKDIR
+    archive_lock      # cleanup $TEMPDIR
 }
 
 cmd_edit() {
@@ -436,31 +436,31 @@ cmd_edit() {
     check_sneaky_paths "$path"
 
     # get the content of the file to be edited
-    archive_unlock    # extract to $WORKDIR
-    mkdir -p "$WORKDIR/$(dirname "$path")"
-    local action="Add" ; [[ -f "$WORKDIR/$path" ]] && action="Edit"
-    touch "$WORKDIR/$path"
-    local file_content="$(cat "$WORKDIR/$path")"
-    archive_lock      # cleanup $WORKDIR
+    archive_unlock    # extract to $TEMPDIR
+    mkdir -p "$TEMPDIR/$(dirname "$path")"
+    local action="Add" ; [[ -f "$TEMPDIR/$path" ]] && action="Edit"
+    touch "$TEMPDIR/$path"
+    local file_content="$(cat "$TEMPDIR/$path")"
+    archive_lock      # cleanup $TEMPDIR
 
     # edit the content of the file
     make_workdir
-    mkdir -p "$WORKDIR/$(dirname "$path")"
-    cat <<EOF > "$WORKDIR/$path"
+    mkdir -p "$TEMPDIR/$(dirname "$path")"
+    cat <<EOF > "$TEMPDIR/$path"
 $file_content
 EOF
-    ${EDITOR:-vi} "$WORKDIR/$path"
-    file_content="$(cat "$WORKDIR/$path")"
-    rm -rf "$WORKDIR"
-    unset WORKDIR
+    ${EDITOR:-vi} "$TEMPDIR/$path"
+    file_content="$(cat "$TEMPDIR/$path")"
+    rm -rf "$TEMPDIR"
+    unset TEMPDIR
 
     # save the edited content of the file
-    archive_unlock    # extract to $WORKDIR
-    cat <<EOF > "$WORKDIR/$path"
+    archive_unlock    # extract to $TEMPDIR
+    cat <<EOF > "$TEMPDIR/$path"
 $file_content
 EOF
-    git_add_file "$WORKDIR/$path" "$action password for $path using ${EDITOR:-vi}."
-    archive_lock      # cleanup $WORKDIR
+    git_add_file "$TEMPDIR/$path" "$action password for $path using ${EDITOR:-vi}."
+    archive_lock      # cleanup $TEMPDIR
 }
 
 cmd_delete() {
@@ -479,14 +479,14 @@ cmd_delete() {
     local path="$1"
     check_sneaky_paths "$path"
 
-    archive_unlock    # extract to $WORKDIR
+    archive_unlock    # extract to $TEMPDIR
 
-    local pwfile="$WORKDIR/${path%/}"
+    local pwfile="$TEMPDIR/${path%/}"
     if [[ ! -d "$pwfile" ]]; then
-        pwfile="$WORKDIR/$path"
+        pwfile="$TEMPDIR/$path"
         if [[ ! -f "$pwfile" ]]; then
             echo "Error: $path is not in the password store."
-            rm -rf "$WORKDIR"  # cleanup $WORKDIR
+            rm -rf "$TEMPDIR"  # cleanup $TEMPDIR
             return
         fi
     fi
@@ -502,7 +502,7 @@ cmd_delete() {
     fi
     rmdir -p "${pwfile%/*}" 2>/dev/null
 
-    archive_lock      # cleanup $WORKDIR
+    archive_lock      # cleanup $TEMPDIR
 }
 
 cmd_copy_move() {
@@ -521,10 +521,10 @@ cmd_copy_move() {
     [[ $# -ne 2 ]] && echo "Usage: $COMMAND old-path new-path [-f,--force]" && return
     check_sneaky_paths "$@"
 
-    archive_unlock    # extract to $WORKDIR
+    archive_unlock    # extract to $TEMPDIR
 
-    local old_path="$WORKDIR/${1%/}"
-    local new_path="$WORKDIR/$2"
+    local old_path="$TEMPDIR/${1%/}"
+    local new_path="$TEMPDIR/$2"
     local old_dir="$old_path"
 
     if [[ ! -d "$old_path" ]]; then
@@ -554,22 +554,22 @@ cmd_copy_move() {
         git_add_file "$new_path" "Copy ${1} to ${2}."
     fi
 
-    archive_lock      # cleanup $WORKDIR
+    archive_lock      # cleanup $TEMPDIR
 }
 
 cmd_git() {
-    archive_unlock    # extract to $WORKDIR
+    archive_unlock    # extract to $TEMPDIR
 
     if [[ $1 == "init" ]]; then
         git "$@" >/dev/null || return
-        git_add_file "$WORKDIR" "Initialization."
+        git_add_file "$TEMPDIR" "Initialization."
     elif [[ -d "$GIT_DIR" ]]; then
-        export TMPDIR="$WORKDIR"
+        export TMPDIR="$TEMPDIR"
         git "$@"
     else
         echo "Error: the password store is not a git repository."
     fi
-    archive_lock      # cleanup $WORKDIR
+    archive_lock      # cleanup $TEMPDIR
 }
 cmd_log() {
     cmd_git log --pretty=format:"%ar: %s" --reverse "$@"
@@ -609,9 +609,9 @@ cmd_export() {
     [[ ! -d "$path" ]] && echo "Usage: $COMMAND dirpath" && return
 
     archive_unlock || return
-    cp -a "$WORKDIR"/* "$path/"
-    cp -a "$WORKDIR/.git" "$path/"
-    rm -rf "$WORKDIR"
+    cp -a "$TEMPDIR"/* "$path/"
+    cp -a "$TEMPDIR/.git" "$path/"
+    rm -rf "$TEMPDIR"
 }
 
 cmd_import() {
@@ -625,9 +625,9 @@ cmd_import() {
         | while read pwfile
     do
         echo "$pwfile"
-        mkdir -p "$(dirname "$WORKDIR/$pwfile")"
-        cat "$path/$pwfile" > "$WORKDIR/$pwfile"
-        git_add_file "$WORKDIR/$pwfile" "Import $pwfile."
+        mkdir -p "$(dirname "$TEMPDIR/$pwfile")"
+        cat "$path/$pwfile" > "$TEMPDIR/$pwfile"
+        git_add_file "$TEMPDIR/$pwfile" "Import $pwfile."
     done
     archive_lock
 }
@@ -667,7 +667,7 @@ run_cmd() {
     esac
 
     # cleanup the temporary workdir, if it is still there
-    [[ -n "$WORKDIR" ]] && rm -rf "$WORKDIR"
+    [[ -n "$TEMPDIR" ]] && rm -rf "$TEMPDIR"
 }
 run_shell() {
     RUN_SHELL='true'
