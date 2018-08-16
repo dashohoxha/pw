@@ -18,7 +18,6 @@ clip() {
 }
 
 make_workdir() {
-	[[ -n $TEMPDIR ]] && return
 	unmount_tmpdir() {
 		[[ -n $TEMPDIR && -d $TEMPDIR && -n $DARWIN_RAMDISK_DEV ]] || return
 		umount "$TEMPDIR"
@@ -26,7 +25,7 @@ make_workdir() {
 		rm -rf "$TEMPDIR"
 	}
 	trap unmount_tmpdir INT TERM EXIT
-	TEMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/$PROGRAM.XXXXXXXXXXXXX")"
+	TEMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/XXXXXXXXXXXXXXXXXXXX")"
 	DARWIN_RAMDISK_DEV="$(hdid -drivekey system-image=yes -nomount 'ram://32768' | cut -d ' ' -f 1)" # 32768 sectors = 16 mb
 	[[ -z $DARWIN_RAMDISK_DEV ]] && die "Error: could not create ramdisk."
 	newfs_hfs -M 700 "$DARWIN_RAMDISK_DEV" &>/dev/null || die "Error: could not create filesystem on ramdisk."

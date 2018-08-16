@@ -13,6 +13,10 @@ PLATFORM="$(uname | cut -d _ -f 1 | tr '[:upper:]' '[:lower:]')"
 umask 077
 set -o pipefail
 
+# unset global vars, to prevent inheriting from environment
+unset TEMPDIR PASSPHRASE GPG_KEYS
+unset GIT_DIR GIT_WORK_TREE RUN_SHELL PROGRAM COMMAND
+
 #
 # BEGIN helper functions
 #
@@ -165,19 +169,19 @@ clip() {
 make_workdir() {
     local warn=1
     [[ $1 == "nowarn" ]] && warn=0
-    local template="$PROGRAM.XXXXXXXXXXXXX"
+    local template="XXXXXXXXXXXXXXXXXXXX"
     if [[ -d /dev/shm && -w /dev/shm && -x /dev/shm ]]; then
         TEMPDIR="$(mktemp -d "/dev/shm/$template")"
-        remove_tmpfile() {
+        remove_tempdir() {
             rm -rf "$TEMPDIR"
         }
-        trap remove_tmpfile INT TERM EXIT
+        trap remove_tempdir INT TERM EXIT
     else
         if [[ $warn -eq 1 ]]; then
             yesno "$(cat <<- _EOF
 Your system does not have /dev/shm, which means that it may
 be difficult to entirely erase the temporary non-encrypted
-password file after editing.
+password directory after editing.
 
 Are you sure you would like to continue?
 _EOF
@@ -776,6 +780,8 @@ _EOF
     X_SELECTION="${X_SELECTION:-clipboard}"
     CLIP_TIME="${CLIP_TIME:-45}"
     TIMEOUT=${TIMEOUT:-300}  # default 5 min
+    GPG_OPTS=${GPG_OPTS:-}
+    DEBUG=${DEBUG:-}
 }
 
 main() {
