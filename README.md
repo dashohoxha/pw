@@ -22,3 +22,5 @@ Depends on:
 - [pwgen](http://sourceforge.net/projects/pwgen/)
 - [tree](http://mama.indstate.edu/users/ice/tree/) >= 1.7.0
 - [GNU getopt](http://software.frodo.looijaard.name/getopt/)
+
+To install simply type: `make`
