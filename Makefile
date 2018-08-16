@@ -1,15 +1,15 @@
-PREFIX ?= /usr
+prefix = /usr
 DESTDIR ?=
-BINDIR ?= $(DESTDIR)$(PREFIX)/bin
-LIBDIR ?= $(DESTDIR)$(PREFIX)/lib/pw
-MANDIR ?= $(DESTDIR)$(PREFIX)/share/man/man1
+BINDIR ?= $(DESTDIR)$(prefix)/bin
+LIBDIR ?= $(DESTDIR)$(prefix)/lib/pw
+MANDIR ?= $(DESTDIR)$(prefix)/share/man/man1
 
 all: install
 
 install:
 	@install -v -d "$(BINDIR)/"
 	@install -v -m 0755 src/pw.sh "$(BINDIR)/pw"
-	@sed -i $(BINDIR)/pw -e "s#^LIBDIR=.*#LIBDIR=\"$(PREFIX)/lib/pw\"#"
+	@sed -i $(BINDIR)/pw -e "s#^LIBDIR=.*#LIBDIR=\"$(prefix)/lib/pw\"#"
 
 	@install -v -d "$(LIBDIR)/"
 	@cp -v -r src/platform src/ext "$(LIBDIR)"
