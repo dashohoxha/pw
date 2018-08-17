@@ -97,6 +97,8 @@ archive_unlock() {
         $GPG --decrypt $gpg_opts -o- "$ARCHIVE.gpg" \
             | $tar_extract --directory="$TEMPDIR"
     fi
+    local err=$?
+    [[ $err == 0 ]] || exit $err
 }
 
 git_add_file() {
@@ -139,18 +141,22 @@ check_sneaky_paths() {
 #
 
 clip() {
-    # This base64 business is because bash cannot store binary data in a shell
-    # variable. Specifically, it cannot store nulls nor (non-trivally) store
-    # trailing new lines.
+    local pass="$1"
+    local path="$2"
+
     local sleep_argv0="password store sleep on display $DISPLAY"
     pkill -f "^$sleep_argv0" 2>/dev/null && sleep 0.5
     local before="$(xclip -o -selection "$X_SELECTION" 2>/dev/null | base64)"
-    echo -n "$1" | xclip -selection "$X_SELECTION" \
+    echo -n "$pass" | xclip -selection "$X_SELECTION" \
         || { echo "Error: Could not copy data to the clipboard"; return; }
     (
         ( exec -a "$sleep_argv0" sleep "$CLIP_TIME" )
+
+        # This base64 business is because bash cannot store binary
+        # data in a shell variable. Specifically, it cannot store
+        # nulls nor (non-trivally) store trailing new lines.
         local now="$(xclip -o -selection "$X_SELECTION" | base64)"
-        [[ $now != $(echo -n "$1" | base64) ]] && before="$now"
+        [[ $now != $(echo -n "$pass" | base64) ]] && before="$now"
 
         # It might be nice to programatically check to see if klipper exists,
         # as well as checking for other common clipboard managers. But for now,
@@ -163,7 +169,7 @@ clip() {
 
         echo "$before" | base64 -d | xclip -selection "$X_SELECTION"
     ) 2>/dev/null & disown
-    echo "Password of $2 sent to clipboard. Will clear in $CLIP_TIME seconds."
+    echo "Password of $path sent to clipboard. Will clear in $CLIP_TIME seconds."
 }
 
 make_workdir() {
