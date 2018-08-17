@@ -15,7 +15,7 @@ set -o pipefail
 
 # unset global vars, to prevent inheriting from environment
 unset TEMPDIR PASSPHRASE GPG_KEYS
-unset GIT_DIR GIT_WORK_TREE RUN_SHELL PROGRAM COMMAND
+unset GIT_DIR GIT_WORK_TREE PROGRAM COMMAND
 
 #
 # BEGIN helper functions
@@ -143,6 +143,12 @@ check_sneaky_paths() {
 clip() {
     local pass="$1"
     local path="$2"
+
+    # xclip works only if there is an X display
+    if [[ -z $DISPLAY ]]; then
+        echo "$pass"
+        return
+    fi
 
     local sleep_argv0="password store sleep on display $DISPLAY"
     pkill -f "^$sleep_argv0" 2>/dev/null && sleep 0.5
@@ -354,8 +360,7 @@ cmd_get() {
     archive_unlock    # extract to $TEMPDIR
     if [[ -f "$TEMPDIR/$path" ]]; then
         local pass="$(cat "$TEMPDIR/$path" | head -n 1)"
-        [[ -n "$pass" ]] \
-            && if [[ -t 0 || -z $RUN_SHELL ]]; then clip "$pass" "$path"; else echo "$pass"; fi
+        [[ -n "$pass" ]] && clip "$pass" "$path"
     else
         echo "Error: $path is not in the password store."
     fi
@@ -680,7 +685,6 @@ run_cmd() {
     [[ -n "$TEMPDIR" ]] && rm -rf "$TEMPDIR"
 }
 run_shell() {
-    RUN_SHELL='true'
     get_passphrase
     list_commands
     timeout_start

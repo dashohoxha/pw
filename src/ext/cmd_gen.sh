@@ -42,7 +42,7 @@ cmd_gen() {
         mv "$pwfile_temp" "$pwfile"
         rm -f "$pwfile_temp"
     fi
-    [[ -t 0 || -z $RUN_SHELL ]] && clip "$pass" "$path"
+    clip "$pass" "$path"
 
     local verb="Add" ; [[ $inplace -eq 1 ]] && verb="Replace"
     git_add_file "$pwfile" "$verb generated password for ${path}."
