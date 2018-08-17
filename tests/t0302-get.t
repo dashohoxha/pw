@@ -11,16 +11,19 @@ $PASS1
 _EOF
 '
 
-test_expect_success 'Test get.' '
-    pwp get test1 &&
-    local pass1=$(xclip -selection clipboard -o) &&
-    [[ $PASS1 == $pass1 ]]
-'
-
-test_expect_success 'Test that get is the default command.' '
-    pwp test1 &&
-    local pass1=$(xclip -selection clipboard -o) &&
-    [[ $PASS1 == $pass1 ]]
-'
+# xclip works only if there is an X display
+if [[ -z $DISPLAY ]]
+then
+    test_expect_success 'Test get.' '
+        local pass1=$(pwp get test1) &&
+        [[ $PASS1 == $pass1 ]]
+    '
+else
+    test_expect_success 'Test get.' '
+        pwp get test1 &&
+        local pass1=$(xclip -selection clipboard -o) &&
+        [[ $PASS1 == $pass1 ]]
+    '
+fi
 
 test_done

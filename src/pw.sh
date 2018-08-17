@@ -246,7 +246,7 @@ Commands and their options are listed below.
     ls [path] [-t,--tree]
         List password files, optionally as a tree.
 
-    [get] pwfile
+    get pwfile
         Copy to clipboard the password (it will be cleared in $CLIP_TIME seconds).
 
     show pwfile
