@@ -61,11 +61,12 @@ archive_lock() {
     local tar_create="tar --create --gzip --to-stdout"
     local gpg_opts="--quiet --yes --batch --compress-algo=none $GPG_OPTS"
     if symmetric_encryption; then
+        local gpg_version=$(gpg --version | head -1 | cut -d' ' -f3)
+        [[ $gpg_version > '2.2.6' ]] && gpg_opts+=' --no-symkey-cache'
         get_passphrase
         exec 3< <(cat <<< "$PASSPHRASE")
         $tar_create --directory="$TEMPDIR" . \
             | $GPG --symmetric $gpg_opts \
-                   --no-symkey-cache \
                    --passphrase-fd 3 \
                    --output "$ARCHIVE.gpg"
     else
