@@ -670,7 +670,6 @@ run_cmd() {
         grep)                    cmd_grep "$@" ;;
         set)                     cmd_set "$@" ;;
         edit)                    cmd_edit "$@" ;;
-        #gen|generate)            cmd_generate "$@" ;;
         del|delete|rm|remove)    cmd_delete "$@" ;;
         mv|rename)               cmd_copy_move "move" "$@" ;;
         cp|copy)                 cmd_copy_move "copy" "$@" ;;

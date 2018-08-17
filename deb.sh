@@ -13,7 +13,7 @@ Version: 1.0
 Section: custom
 Priority: optional
 Architecture: all
-Depends: bash, gnupg, git, xclip, pwgen, tree, util-linux
+Depends: bash, gnupg, git, xclip, pwgen, tree, util-linux, ed
 Maintainer: https://github.com/dashohoxha/pw
 Description: A simple command-line password manager.
 EOF
