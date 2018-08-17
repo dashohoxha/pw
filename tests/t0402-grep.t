@@ -18,9 +18,9 @@ wq
 _EOF
 
     cat <<-"_EOF" > grep-1.txt &&
+test1:test1 second line
 test2/test5:second line
 test2/test5:third line
-test1:test1 second line
 _EOF
 
     pwp grep "line" | remove_special_chars > grep-2.txt &&
