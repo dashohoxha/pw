@@ -118,8 +118,20 @@ yesno() {
     [[ $response == [yY] ]] || return 1
 }
 symmetric_encryption() {
-    [[ -z $GPG_KEYS ]] && return 0
-    return 1
+    case $1 in
+        enable)
+            unset GPG_KEYS
+            rm -f "$ARCHIVE.gpg.keys"
+            ;;
+        disable)
+            unset PASSPHRASE
+            cat <<<"GPG_KEYS=\"$GPG_KEYS\"" > "$ARCHIVE.gpg.keys"
+            ;;
+        *)  # test
+            [[ -z $GPG_KEYS ]] && return 0
+            return 1
+            ;;
+    esac
 }
 die() {
     echo "$@" >&2
@@ -592,32 +604,61 @@ cmd_log() {
 }
 
 cmd_set_passphrase() {
-    archive_unlock || return
+    local passphrase1 passphrase2
+
+    # save the current passphrase, if any
+    [[ -n $PASSPHRASE ]] && passphrase1=$PASSPHRASE
+
+    # get a new passphrase and save it
     new_passphrase
-    unset GPG_KEYS
+    [[ -z $PASSPHRASE ]] && return 1
+    passphrase2=$PASSPHRASE
+
+    # switch back to the current passphrase
+    # and unlock the archive
+    PASSPHRASE=$passphrase1
+    archive_unlock || return 1
+
+    # enable symmetric encryption
+    symmetric_encryption enable
+
+    # switch to the new passphrase and lock the archive
+    PASSPHRASE=$passphrase2
     archive_lock
-    rm -f "$ARCHIVE.gpg.keys"
 }
 
 cmd_set_gpg_keys() {
-    archive_unlock || return
-    GPG_KEYS="$*"
-    [[ -z $GPG_KEYS ]] && gen_gpg_key
-    unset PASSPHRASE
+    # get the keys
+    local gpg_keys="$*"
+    [[ -z $gpg_keys ]] && gpg_keys=$(gen_gpg_key)
+    [[ -z $gpg_keys ]] && return 1
+
+    # unlock archive and then lock with asymmetric encryption
+    archive_unlock || return 1
+    GPG_KEYS="$gpg_keys"
+    symmetric_encryption disable
     archive_lock
-    cat <<<"GPG_KEYS=\"$GPG_KEYS\"" > "$ARCHIVE.gpg.keys"
 }
 gen_gpg_key() {
+    local gpg_key
     local homedir="$PW_DIR/.gnupg"
+
     if [[ -d "$homedir" ]]; then
-        GPG_KEYS=$($GPG --homedir "$homedir" --list-keys --with-colons | grep '^pub:' | cut -d':' -f5)
-        [[ -n "$GPG_KEYS" ]] && return
+        gpg_key=$($GPG --homedir "$homedir" --list-keys --with-colons | grep '^pub:' | cut -d':' -f5)
+        if [[ -n $gpg_key ]]; then
+            echo $gpg_key
+            return
+        fi
     fi
+
     mkdir -p "$homedir"
-    GPG_OPTS="$GPG_OPTS --homedir $homedir"
-    sed -i "$PW_DIR/config.sh" -e "/GPG_OPTS=/c GPG_OPTS=\"$GPG_OPTS\""
-    $GPG $GPG_OPTS --gen-key
-    GPG_KEYS=$($GPG --homedir "$homedir" --list-keys --with-colons | grep '^pub:' | cut -d':' -f5)
+    $GPG --homedir "$homedir" --gen-key
+    gpg_key=$($GPG --homedir "$homedir" --list-keys --with-colons | grep '^pub:' | cut -d':' -f5)
+    if [[ -n $gpg_key ]]; then
+        GPG_OPTS="$GPG_OPTS --homedir '$homedir'"
+        sed -i "$PW_DIR/config.sh" -e "/GPG_OPTS=/c GPG_OPTS=\"$GPG_OPTS\""
+        echo $gpg_key
+    fi
 }
 
 cmd_export() {

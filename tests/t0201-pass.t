@@ -14,9 +14,9 @@ _EOF
 
 test_expect_success 'Change the passphrase of the test archive.' '
     cat <<-_EOF | pw -a test-archive set-passphrase &&
+new-passphrase
+new-passphrase
 passphrase
-new-passphrase
-new-passphrase
 _EOF
 
     echo "passphrase" | pw -a test-archive ls | grep "gpg: decryption failed: Bad session key" &&
@@ -29,9 +29,9 @@ _EOF
     echo "new-passphrase" | pw -a test-archive ls | grep "test1"
 
     cat <<-_EOF | pw -a test-archive pass
+another-passphrase
+another-passphrase
 new-passphrase
-another-passphrase
-another-passphrase
 _EOF
 '
 

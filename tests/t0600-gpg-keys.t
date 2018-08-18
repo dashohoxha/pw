@@ -34,9 +34,9 @@ _EOF
 
 test_expect_success 'Set another passphrase' '
     cat <<-_EOF | pw pass &&
+new-passphrase
+new-passphrase
 passphrase1
-new-passphrase
-new-passphrase
 _EOF
     test_must_fail pw ls <<<"passphrase1" &&
     echo "new-passphrase" | pw ls | grep "test1" &&
