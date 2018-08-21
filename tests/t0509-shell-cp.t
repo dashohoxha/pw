@@ -9,7 +9,7 @@ test_expect_success 'Test usage' '
 '
 
 test_expect_success 'Test not found' '
-    run_in_shell "cp test10 test11" | grep "Error: test10 is not in the password store."
+    run_in_shell "cp test10 test11" | grep "Error: test10 is not in the archive."
 '
 
 test_expect_success 'Test cp' '

@@ -23,7 +23,7 @@ pw(1) -- simple password manager
 
     List password files, optionally as a tree.
 
-* [`get`] <pwfile>
+* `get` <pwfile>
 
     Copy to clipboard the password (it will be cleared in a few seconds).
 

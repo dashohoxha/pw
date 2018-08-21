@@ -9,12 +9,12 @@ test_expect_success 'Test gen usage' '
 
 test_expect_success 'Test gen new entry' '
     run_in_shell "gen test11" &&
-    [[ $(pwp show test11 | wc -m) -eq 31 ]]
+    [[ $(pwp show test11 | wc -m) == 31 ]]
 '
 
 test_expect_success 'Test gen with given length' '
     run_in_shell "gen test12 35" &&
-    [[ $(pwp show test12 | wc -m) -eq 36 ]]
+    [[ $(pwp show test12 | wc -m) == 36 ]]
 '
 
 test_expect_success 'Test gen check length' '

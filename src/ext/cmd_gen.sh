@@ -12,29 +12,29 @@ cmd_gen() {
         esac
     done
 
-    [[ $err -ne 0 || $# -lt 1 || ( $force -eq 1 && $inplace -eq 1 ) ]] \
+    [[ $err != 0 || $# -lt 1 || ( $force == 1 && $inplace == 1 ) ]] \
         && echo "Usage: $COMMAND pwfile [length] [-n,--no-symbols] [-i,--in-place | -f,--force]" \
-        && return
+        && return 1
 
     local path="$1"
     local length="${2:-30}"    # default length 30
     check_sneaky_paths "$path"
     [[ ! $length =~ ^[0-9]+$ ]] \
         && echo "Error: pass-length \"$length\" must be a number." \
-        && return
+        && return 1
+
+    if file_exists "$path" && [[ $inplace == 0 && $force == 0 ]]; then
+        yesno "An entry already exists for $path. Overwrite it?" || return
+    fi
 
     archive_unlock    # extract to $TEMPDIR
 
     mkdir -p "$TEMPDIR/$(dirname "$path")"
     local pwfile="$TEMPDIR/$path"
 
-    if [[ $inplace -eq 0 && $force -eq 0 && -e $pwfile ]]; then
-        yesno "An entry already exists for $path. Overwrite it?" || return
-    fi
-
     local pass="$(pwgen -s $symbols $length 1)"
-    [[ -n $pass ]] || return
-    if [[ $inplace -eq 0 ]]; then
+    [[ -n $pass ]] || return 1
+    if [[ $inplace == 0 ]]; then
         cat <<< "$pass" > "$pwfile"
     else
         local pwfile_temp="${pwfile}.tmp.${RANDOM}.${RANDOM}.${RANDOM}.${RANDOM}.--"
@@ -44,7 +44,7 @@ cmd_gen() {
     fi
     clip "$pass" "$path"
 
-    local verb="Add" ; [[ $inplace -eq 1 ]] && verb="Replace"
+    local verb="Add" ; [[ $inplace == 1 ]] && verb="Replace"
     git_add_file "$pwfile" "$verb generated password for ${path}."
 
     archive_lock      # cleanup $TEMPDIR

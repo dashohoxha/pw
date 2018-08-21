@@ -34,11 +34,11 @@ _EOF
 
 test_expect_success 'Set another passphrase' '
     cat <<-_EOF | pw pass &&
-new-passphrase
-new-passphrase
 passphrase1
+new-passphrase
+new-passphrase
 _EOF
-    test_must_fail pw ls <<<"passphrase1" &&
+    pw ls <<<"passphrase1" 2>&1 | grep "gpg: decryption failed: Bad session key" &&
     echo "new-passphrase" | pw ls | grep "test1" &&
     [[ "$(pw show test1 <<<"new-passphrase")" == "$PASS1" ]]
 '

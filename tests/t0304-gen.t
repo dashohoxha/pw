@@ -6,13 +6,13 @@ source "$(dirname "$0")"/setup-03.sh
 test_expect_success 'Generate a password with default length.' '
     pwp gen test1 &&
     local pass=$(pwp show test1) &&
-    [[ $(echo "$pass" | wc -m) -eq 31 ]]
+    [[ $(echo "$pass" | wc -m) == 31 ]]
 '
 
 test_expect_success 'Generate a password with a given length.' '
     pwp gen test2 35 &&
     local pass=$(pwp show test2) &&
-    [[ $(echo "$pass" | wc -m) -eq 36 ]]
+    [[ $(echo "$pass" | wc -m) == 36 ]]
 '
 
 test_expect_success 'Check that the given length is a number.' '
@@ -62,7 +62,7 @@ _EOF
     pwp gen test3 -i &&
 
     local lines=$(pwp show test3 | wc -l) &&
-    [[ $lines -eq 3 ]] &&
+    [[ $lines == 3 ]] &&
 
     local pass1=$(pwp show test3 | head -n 1) &&
     [[ $pass1 != $PASS1 ]]

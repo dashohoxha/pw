@@ -1,4 +1,5 @@
 cmd_find() {
-    [[ -z $1 ]] && echo "Usage: $COMMAND <pattern>" && return
-    cmd_list | grep -i $1
+    local pattern="$1"
+    [[ -z $pattern ]] && echo "Usage: $COMMAND <pattern>" && return 1
+    cmd_list | grep -i "$pattern"
 }

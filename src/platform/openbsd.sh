@@ -2,7 +2,7 @@
 # Copyright (C) 2015 David Dahlberg <david.dahlberg@fkie.fraunhofer.de>. All Rights Reserved.
 # This file is licensed under the GPLv2+. Please see COPYING for more information.
 
-make_workdir() {
+make_tempdir() {
 	local warn=1
 	[[ $1 == "nowarn" ]] && warn=0
 	local template="XXXXXXXXXXXXXXXXXXXX"
@@ -10,7 +10,7 @@ make_workdir() {
 		TEMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/$template")"
 		mount -t tmpfs -o -s16M tmpfs "$TEMPDIR" || die "Error: could not create tmpfs."
 		unmount_tmpdir() {
-			 [[ -n $TEMPDIR && -d $TEMPDIR ]] || return
+			 [[ -n $TEMPDIR && -d $TEMPDIR ]] || return 1
 			 umount "$TEMPDIR"
 			 rm -rf "$TEMPDIR"
 		}

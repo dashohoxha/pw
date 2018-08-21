@@ -29,7 +29,7 @@ second line
 third line
 _EOF
     local lines=$(pwp show test2 | wc -l) &&
-    [[ $lines -eq 3 ]]
+    [[ $lines == 3 ]]
 '
 
 test_expect_success 'Do not overwrite existing entry.' '

@@ -4,7 +4,7 @@
 # Please see COPYING for more information.
 
 clip() {
-	local sleep_argv0="password store sleep for user $(id -u)"
+	local sleep_argv0="pw sleep for user $(id -u)"
 	pkill -f "^$sleep_argv0" 2>/dev/null && sleep 0.5
 	local before="$(pbpaste | openssl base64)"
 	echo -n "$1" | pbcopy
@@ -17,9 +17,9 @@ clip() {
 	echo "Password of $2 sent to clipboard. Will clear in $CLIP_TIME seconds."
 }
 
-make_workdir() {
+make_tempdir() {
 	unmount_tmpdir() {
-		[[ -n $TEMPDIR && -d $TEMPDIR && -n $DARWIN_RAMDISK_DEV ]] || return
+		[[ -n $TEMPDIR && -d $TEMPDIR && -n $DARWIN_RAMDISK_DEV ]] || return 1
 		umount "$TEMPDIR"
 		diskutil quiet eject "$DARWIN_RAMDISK_DEV"
 		rm -rf "$TEMPDIR"
